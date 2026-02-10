@@ -25,43 +25,46 @@ ts_seasonal <- function(filename, nums = 1:4) {
     data.seasonal <- rbind(data.seasonal, data)
   }
   data.seasonal <- data.seasonal[-1, ]
-  data.seasonal <- dplyr::mutate(data.seasonal, Year = as.numeric(Year))
+  data.seasonal <- dplyr::mutate(data.seasonal, Year = readr::parse_number(as.character(Year)))
+  data.seasonal <- dplyr::filter(data.seasonal, !is.na(Year))
   data.seasonal <- dplyr::arrange(data.seasonal, Year)
   dplyr::mutate(data.seasonal, Month = factor(Month, levels = 1:4, labels = c('January', 'April', 'July', 'October')))
 }
 
-# Collapse 4 months into 1 value per year (for each of Min/Avg/Max).
-collapse_year <- function(df) {
+# Make ts objects (freq = 4) for Min/Avg/Max, starting at the earliest year.
+make_site_ts <- function(df) {
+  df <- dplyr::mutate(df, Year = readr::parse_number(as.character(Year)))
   df <- dplyr::filter(df, !is.na(Year))
-  df <- dplyr::mutate(df, Year = as.numeric(Year))
-  df %>% 
-    dplyr::group_by(Year) %>% 
-    dplyr::summarize(Min = mean(Min, na.rm = TRUE), Avg = mean(Avg, na.rm = TRUE), Max = mean(Max, na.rm = TRUE), .groups = 'drop')
+  df$Season <- as.numeric(df$Month)
+  df <- dplyr::arrange(df, Year, Season)
+  start_year <- min(df$Year, na.rm = TRUE)
+  ts_min <- stats::ts(df$Min, start = c(start_year, 1), frequency = 4)
+  ts_avg <- stats::ts(df$Avg, start = c(start_year, 1), frequency = 4)
+  ts_max <- stats::ts(df$Max, start = c(start_year, 1), frequency = 4)
+  list(ts_min = ts_min, ts_avg = ts_avg, ts_max = ts_max, start_year = start_year)
 }
 
 # Plot min, max, and avg of site statically.
-plot_site_static <- function(df, site) {
-  df_year <- collapse_year(df)
-  df_long <- df_year %>% tidyr::pivot_longer(cols = c('Min', 'Avg', 'Max'), names_to = 'Type', values_to = 'Temp')
-  df_long$Type <- factor(df_long$Type, levels = c('Min', 'Avg', 'Max'), labels = c('Min', 'Avg', 'Max'))
-  g <- df_long %>%
-    ggplot2::ggplot(ggplot2::aes(Year, Temp, color = Type)) +
-    ggplot2::geom_line(size = 1) +
-    ggplot2::theme_classic() +
-    ggplot2::labs(x = 'Time (year)', y = 'Temperature (°F)') +
-    ggplot2::ggtitle(paste(site, 'Temperature over Time (Min/Avg/Max)'))
-  print(g)
+plot_site_static_ts <- function(df, site) {
+  ts_list <- make_site_ts(df)
+  ylo <- min(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE)
+  yhi <- max(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE)
+  par(mfrow = c(3, 1), mar = c(4, 4, 2, 1))
+  astsa::tsplot(ts_list$ts_max, main = paste(site, 'Temperature Time Series'), xlab = 'Time (years)', ylab = 'Max (°F)', lwd = 2, ylim = c(ylo, yhi))
+  astsa::tsplot(ts_list$ts_avg, main = '', xlab = 'Time (years)', ylab = 'Avg (°F)', lwd = 2, ylim = c(ylo, yhi))
+  astsa::tsplot(ts_list$ts_min, main = '', xlab = 'Time (years)', ylab = 'Min (°F)', lwd = 2, ylim = c(ylo, yhi))
+  par(mfrow = c(1, 1))
 }
 
 # Plot min, max, and avg of site interactively.
-plot_site_interactive <- function(df, site) {
-  df_year <- collapse_year(df)
-  df_long <- df_year %>% tidyr::pivot_longer(cols = c('Min', 'Avg', 'Max'), names_to = 'Type', values_to = 'Temp')
-  df_long$Type <- factor(df_long$Type, levels = c('Min', 'Avg', 'Max'), labels = c('Min', 'Avg', 'Max'))
-  p <- plotly::plot_ly(df_long, x = ~Year, y = ~Temp, color = ~Type) %>%
-    plotly::add_lines() %>%
-    plotly::layout(title = list(text = paste(site, 'Temperature over Time (Min/Avg/Max)')), yaxis = list(title = 'Temperature (°F)'))
-  p
+plot_site_interactive_ts <- function(df, site) {
+  ts_list <- make_site_ts(df)
+  t <- as.numeric(stats::time(ts_list$ts_avg))
+  dfp <- tibble::tibble(Time = t, Max = as.numeric(ts_list$ts_max), Avg = as.numeric(ts_list$ts_avg), Min = as.numeric(ts_list$ts_min))
+  pmax <- plotly::plot_ly(dfp, x = ~Time, y = ~Max, name = 'Max') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Max (°F)'))
+  pavg <- plotly::plot_ly(dfp, x = ~Time, y = ~Avg, name = 'Avg') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Avg (°F)'))
+  pmin <- plotly::plot_ly(dfp, x = ~Time, y = ~Min, name = 'Min') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Min (°F)'))
+  plotly::subplot(pmax, pavg, pmin, nrows = 3, shareX = TRUE, titleY = TRUE) %>% plotly::layout(title = list(text = paste(site, 'Temperature Time Series (Interactive)')))
 }
 
 # ----- Problem 1 ----- #
@@ -72,8 +75,9 @@ data(soi)
 # Make time series plot.
 plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time', ylab = 'Sourthern Oscillation Index', lwd = 2)
 
-# Make decomposition plot.
+# Make decomposition plots.
 plot(stats::decompose(soi, type = 'additive'))
+plot(stats::decompose(soi, type = 'multiplicative'))
 
 # Fit models.
 t1 <- stats::time(soi)
@@ -109,22 +113,27 @@ plot(time(soi), m3$residuals, type = 'l', main = 'Detrended Data for Model 3', y
 # ----- Problem 2 ----- #
 
 # Load data.
-NewHaven  <- ts_seasonal('data/Climate_Northeast_NewHavenCT.xlsx')
-Warwick   <- ts_seasonal('data/Climate_Northeast_WarwickRI.xlsx')
+NewHaven <- ts_seasonal('data/Climate_Northeast_NewHavenCT.xlsx')
+Warwick <- ts_seasonal('data/Climate_Northeast_WarwickRI.xlsx')
 Worcester <- ts_seasonal('data/Climate_Northeast_WorcesterMA.xlsx')
 
 # Make static time series plots.
-plot_site_static(NewHaven, 'New Haven, CT')
-plot_site_static(Warwick, 'Warwick, RI')
-plot_site_static(Worcester, 'Worcester, MA')
+plot_site_static_ts(NewHaven, 'New Haven, CT')
+plot_site_static_ts(Warwick, 'Warwick, RI')
+plot_site_static_ts(Worcester, 'Worcester, MA')
 
 # Make interactive plots.
-p_NewHaven <- plot_site_interactive(NewHaven, 'New Haven, CT')
-p_Warwick <- plot_site_interactive(Warwick, 'Warwick, RI')
-p_Worcester <- plot_site_interactive(Worcester, 'Worcester, MA')
+p_NewHaven <- plot_site_interactive_ts(NewHaven, 'New Haven, CT')
+p_Warwick <- plot_site_interactive_ts(Warwick, 'Warwick, RI')
+p_Worcester <- plot_site_interactive_ts(Worcester, 'Worcester, MA')
+dir_create('plots')
 htmlwidgets::saveWidget(p_NewHaven, 'plots/NewHaven.html', selfcontained = TRUE)
 htmlwidgets::saveWidget(p_Warwick, 'plots/Warwick.html', selfcontained = TRUE)
 htmlwidgets::saveWidget(p_Worcester, 'plots/Worcester.html', selfcontained = TRUE)
 
 # https://rentosaijo.github.io/STA209/plots/NewHaven.html
+# https://rentosaijo.github.io/STA209/plots/Warwick.html
+# https://rentosaijo.github.io/STA209/plots/Worcester.html
+
+# ----- Project ----- #
 
