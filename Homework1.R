@@ -122,6 +122,9 @@ plot_site_static(Worcester, 'Worcester, MA')
 p_NewHaven <- plot_site_interactive(NewHaven, 'New Haven, CT')
 p_Warwick <- plot_site_interactive(Warwick, 'Warwick, RI')
 p_Worcester <- plot_site_interactive(Worcester, 'Worcester, MA')
-htmlwidgets::saveWidget(p_NewHaven, 'plots/NewHaven_interactive.html', selfcontained = TRUE)
-htmlwidgets::saveWidget(p_Warwick, 'plots/Warwick_interactive.html', selfcontained = TRUE)
-htmlwidgets::saveWidget(p_Worcester, 'plots/Worcester_interactive.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(p_NewHaven, 'plots/NewHaven.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(p_Warwick, 'plots/Warwick.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(p_Worcester, 'plots/Worcester.html', selfcontained = TRUE)
+
+# https://rentosaijo.github.io/STA209/plots/NewHaven.html
+
