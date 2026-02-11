@@ -312,7 +312,7 @@ with_family({
 })
 ```
 
-We were instructed in class that no comments were necessary for the decomposition graphs as they'd be a repeat of part (i).
+We were instructed in class that no comments were necessary for the decomposition graphs as they'd be a repeat of part (i). Quickly, though, the seaonlity is way more obvious in these decomposition plots than the original time series.
 
 \newpage
 
@@ -444,15 +444,15 @@ Plot all three fits on the same plot and discuss which one fits SOI data the bes
 ```{r, fig.height = 5}
 # Plot fitted lines.
 with_family({
-  plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time (year)', ylab = 'Southern Oscillation Index')
-  par(new = TRUE); plot(m1$fitted, type = 'l', lwd = 2, lty = 2, col = 2, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
-  par(new = TRUE); plot(m2$fitted, type = 'l', lwd = 2, lty = 2, col = 3, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
-  par(new = TRUE); plot(m3$fitted, type = 'l', lwd = 2, lty = 2, col = 4, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
-  legend('bottomleft', c('Observed', 'Model 1', 'Model 2', 'Model 3'), lty = c(1, 2, 2, 2), lwd = c(1, rep(2, 3)), col = 1:4)
+  astsa::tsplot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time (year)', ylab = 'Southern Oscillation Index')
+  par(new = TRUE); astsa::trend(soi, order = 1, col = 1:2, lwd = 2, ylab = '',xlab = '',main = '',xaxt = 'n', yaxt = 'n')
+  par(new = TRUE); astsa::trend(soi, order = 2, col = c(1, 3), lwd = 2, ylab = '', xlab = '', main = '',xaxt = 'n', yaxt = 'n')
+  par(new = TRUE); astsa::trend(soi, order = 3, col = c(1, 4), lwd = 2, ylab = '', xlab = '', main = '',xaxt = 'n', yaxt = 'n')
+  legend('bottomright', legend = c('Linear', 'Quadratic', 'Cubic'), lwd = rep(2, 3),col = 2:4)
 })
 ```
 
-From the fitted-lines plot, all three trend models capture only a very smooth long-run component, while the observed SOI series fluctuates substantially around that trend. Model I imposes a straight (linear) downward trend, whereas Models II and III allow increasing curvature; visually, the higher-order models can appear to follow the broad shape slightly more in some sub-intervals, but they still miss the dominant month-to-month variability. The numerical fit measures confirm that this extra flexibility does not translate into better overall fit: Model I has the largest adjusted $R^2$ ($0.03677$) compared with Model II ($0.03597$) and Model III ($0.03593$), and the residual standard errors are essentially the same for all three models (about $0.376$). Thus, despite the added polynomial terms, Models II and III do not provide a meaningful improvement over the simpler linear trend model, and Model I is preferred on both adjusted $R^2$ and simplicity (although it may seem somewhat counterintuitive to what the graph may suggest; to be fair, we are splitting hairs at this point).
+From the fitted-lines plot, all three polynomial trend models capture only a smooth long-run component of the SOI, while the observed series exhibits much larger month-to-month fluctuations around that trend. The fitted curves are very close to one another over most of the sample: the linear fit shows a gentle overall decline, while the quadratic and cubic fits introduce mild curvature that slightly bends the trend (most noticeably near the ends of the series). In particular, the cubic fit drops a bit more in the early 1950s and again toward the late 1980s, but these differences are small relative to the variability in the data, and all three fits remain well within the same overall band of uncertainty. The numerical fit measures agree with the visual impression that added flexibility does not materially improve the model: the adjusted $R^2$ values are nearly identical and remain small (Model I: $0.03677$; Model II: $0.03597$; Model III: $0.03593$), and the residual standard errors are essentially the same for all three models (about $0.376$). Therefore, there is no meaningful gain from adding the quadratic or cubic terms, and the linear trend model is preferred on parsimony while fitting essentially as well as the higher-order alternatives.
 
 \newpage
 

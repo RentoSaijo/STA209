@@ -97,14 +97,11 @@ anova(m2)
 anova(m3)
 
 # Plot fitted lines.
-plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time', ylab = 'Sourthern Oscillation Index', lwd = 2)
-par(new = TRUE)
-plot(m1$fitted, type = 'l', lwd = 6, lty = 2, col = 2, main='', xlab='', ylab='', xaxt='n', yaxt='n')
-par(new = TRUE)
-plot(m2$fitted, type = 'l', lwd = 6, lty = 2, col = 3, main='', xlab='', ylab='', xaxt='n', yaxt='n')
-par(new = TRUE)
-plot(m3$fitted, type = 'l', lwd = 6, lty = 2, col = 4, main='', xlab='', ylab='', xaxt='n', yaxt='n')
-legend('bottomleft', c('Observed', 'Model 1', 'Model 2', 'Model 3'), lty = c(1, rep(2, 3)), lwd = rep(2, 4), col = 1:4)
+plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time (year)', ylab = 'Southern Oscillation Index')
+  lines(fitted(m1), col = 2, lwd = 10)
+  lines(fitted(m2), col = 3, lwd = 10)
+  lines(fitted(m3), col = 4, lwd = 10)
+  legend('bottomleft', c('Observed', 'Model 1', 'Model 2', 'Model 3'), lty = c(1, 2, 2, 2), lwd = c(1, rep(2, 3)), col = 1:4)
 
 # Plot detrended data.
 plot(time(soi), m1$residuals, type = 'l', main = 'Detrended Data for Model 1', ylab = 'Residual')
