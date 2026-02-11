@@ -1,0 +1,801 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+\documentclass[
+  10pt,
+]{extarticle}
+\usepackage{xcolor}
+\usepackage[top=1.5in, bottom=1.5in, left=1.5in, right=1.5in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+\usepackage{float}
+\usepackage{fvextra}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{soul}
+\usepackage{etoolbox}
+\usepackage{microtype}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{fancyvrb}
+\usepackage{xspace}
+\allowdisplaybreaks
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{0}
+\floatplacement{figure}{H}
+\makeatletter
+\newcommand{\@subtitle}{}
+\newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+\newcommand{\DocSubtitle}{\@subtitle}
+\renewcommand{\maketitle}{
+  \thispagestyle{plain}
+  \null
+  \vfill
+  \begin{center}
+    {\Large \textsc{\@title} \par}\vskip 0.5em
+    {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+    {\large \@author \par}\vskip 0.5em
+    {\normalsize \@date \par}
+  \end{center}
+  \vfill
+  \tableofcontents
+  \vspace{1em}
+  \clearpage
+}
+\AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+\makeatother
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+\fancyhead[L]{\textsc{Rento Saijo}}
+\fancyhead[R]{\textsc{\DocSubtitle}}
+\fancyhead[C]{\textsc{\rightmark}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\newcounter{CodeLine}
+\newcounter{cell}
+\AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+  frame=single,
+  rulecolor=\color{black},
+  framesep=2mm,
+  label=\footnotesize\textbf{Cell \thecell},
+  labelposition=topline,
+  commandchars=\\\{\},
+  breaklines=true,
+  breakanywhere=false,
+  breaksymbol={},
+  numbers=left,
+  numbersep=3pt,
+  firstnumber=\numexpr\value{CodeLine}+1\relax,
+  fontsize=\small
+}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{
+  breaklines=true,
+  breakanywhere=true,
+  numbers=left,
+  numbersep=3pt,
+  firstnumber=1,
+  fontsize=\footnotesize
+}
+\DefineVerbatimEnvironment{snippet}{Verbatim}{
+  breaklines=true,
+  breakanywhere=true,
+  fontsize=\footnotesize,
+  frame=single,
+  listparameters=\setlength{\topsep}{\baselineskip}\setlength{\partopsep}{0pt}
+}
+\newtcolorbox{problem}[1][]{
+  title={\textsc{#1}}
+}
+\newenvironment{alphenum}{
+  \begin{enumerate}[
+    label=(\alph*),
+    itemsep=3pt,
+    parsep=0pt,
+    topsep=6pt
+  ]
+}{
+  \end{enumerate}
+}
+\newenvironment{items}{
+  \begin{itemize}[
+    itemsep=3pt,
+    parsep=0pt,
+    topsep=6pt
+  ]
+}{
+  \end{itemize}
+}
+\renewcommand{\contentsname}{Table of Contents}
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\R}{\textsf{R}\xspace}
+\newcommand{\Pois}{\mathrm{Pois}}
+\newcommand{\SD}{\mathrm{SD}}
+\newcommand{\SE}{\mathrm{SE}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={STA 209: Introduction to Time Series Analysis},
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={blue},
+  urlcolor={blue},
+  pdfcreator={LaTeX via pandoc}}
+
+\title{STA 209: Introduction to Time Series Analysis}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Homework 1}
+\author{Rento Saijo}
+\date{February 11, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Disclosure}\label{disclosure}
+
+ChatGPT-5.2 was used to create the \texttt{YAML} portion and some \texttt{LaTeX} code to format the text/equations nicely; some formatting code were also provided by Derin Gezgin. In the setup chunk, libraries were loaded and some helper functions were defined including but not limited to \texttt{plot\_site\_static\_ts()} and \texttt{plot\_site\_interactive\_ts}. See the original \texttt{RMD} file \href{https://github.com/RentoSaijo/STA209/blob/main/Homework1.Rmd}{here} for more details.
+
+\newpage
+
+\section{Problem 1}\label{problem-1}
+
+\begin{problem}[Problem 1]
+Consider the Southern oscillation index data (\texttt{soi}) available in the R package \texttt{astsa}. Use this data to do the following in R and then report your results.
+\end{problem}
+
+The Southern Oscillation Index (SOI) dataset is a monthly time series with 453 observations covering the years 1950 through 1987. It is represented in the form \texttt{Time-Series [1:453]} (notated as running from 1950 to 1988 in the printed format) and is shown as a numeric sequence (e.g., \texttt{0.377, 0.246, 0.311, 0.104, -0.016, 0.235, \dots}). The series is intended to pair with \texttt{rec} (Recruitment) for related analyses. The data were furnished by Dr.~Roy Mendelssohn of the Pacific Fisheries Environmental Laboratory, NOAA (personal communication). Demonstrations of \texttt{astsa} capabilities are referenced under \emph{FUN WITH ASTSA}, and the most recent version of the package is maintained on GitHub along with the \texttt{NEWS} and \texttt{ChangeLog} files; additional webpages for the associated texts and help using \textsf{R} for time series analysis are available at the author's site.
+
+\newpage
+
+\subsection{Problem 1 (i)}\label{problem-1-i}
+
+\begin{problem}[Problem 1 (i)]
+Make a time series plot and comment on the interesting features.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Load data.}
+\FunctionTok{data}\NormalTok{(soi)}
+
+\CommentTok{\# Make time series plot.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{data}\NormalTok{(soi)}
+  \FunctionTok{plot}\NormalTok{(soi, }\AttributeTok{main =} \StringTok{\textquotesingle{}Southern Oscillation Index over 453 Months\textquotesingle{}}\NormalTok{, }\AttributeTok{xlab =} \StringTok{\textquotesingle{}Time (year)\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}Southern Oscillation Index\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-1-1} \end{center}
+
+From the time series plot of the Southern Oscillation Index (SOI) over 453 months, there is no clear long-run upward or downward trend; instead, the series oscillates around a roughly constant mean near zero, so any trend component appears weak and essentially flat (if anything, slight downward trend). In terms of seasonality, there is a clear repeating pattern at an approximately annual frequency: the SOI exhibits a recurring within-year cycle that repeats from year to year (consistent with a 12-month seasonal structure), even though the strength of the cycle is sometimes masked by the larger irregular swings between positive and negative phases. Regarding variability, the SOI values remain in a relatively stable range of about \(-1.0\) to \(1.0\) (so the overall spread is roughly \(2\) units), and the amplitude of fluctuations looks fairly constant across time, suggesting approximate homoskedasticity (no clear fanning in/out of variance). Finally, there is no strong evidence of volatility clustering: although there are occasional bursts of larger positive/negative deviations, these do not persist in a sustained way, and the variability returns quickly to its typical level.
+
+\newpage
+
+\subsection{Problem 1 (ii)}\label{problem-1-ii}
+
+\begin{problem}[Problem 1 (ii)]
+Show decomposition of this time series and comment on the components.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Make decomposition plots.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{decompose}\NormalTok{(soi, }\AttributeTok{type =} \StringTok{\textquotesingle{}additive\textquotesingle{}}\NormalTok{))}
+  \FunctionTok{plot}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{decompose}\NormalTok{(soi, }\AttributeTok{type =} \StringTok{\textquotesingle{}multiplicative\textquotesingle{}}\NormalTok{))}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-2-1} \end{center}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-2-2} \end{center}
+
+We were instructed in class that no comments were necessary for the decomposition graphs as they'd be a repeat of part (i).
+
+\newpage
+
+\subsection{Problem 1 (iii)}\label{problem-1-iii}
+
+\begin{problem}[Problem 1 (iii)]
+Fit following three different models to the SOI data:
+\begin{align*}
+\textbf{Model I:}\quad & SOI_t = \beta_0 + \beta_1 t + Noise_t \\
+\textbf{Model II:}\quad & SOI_t = \beta_0 + \beta_1 t + \frac{\beta_2 t^2}{2!} + Noise_t \\
+\textbf{Model III:}\quad & SOI_t = \beta_0 + \beta_1 t + \frac{\beta_2 t^2}{2!} + \frac{\beta_3 t^3}{3!} + Noise_t
+\end{align*}
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit models.}
+\NormalTok{t1 }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{time}\NormalTok{(soi)}
+\NormalTok{t2 }\OtherTok{\textless{}{-}}\NormalTok{ t1}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\NormalTok{t3 }\OtherTok{\textless{}{-}}\NormalTok{ t1}\SpecialCharTok{\^{}}\DecValTok{3} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+\NormalTok{m1 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(soi }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t1)}
+\NormalTok{m2 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(soi }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t1 }\SpecialCharTok{+}\NormalTok{ t2)}
+\NormalTok{m3 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(soi }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t1 }\SpecialCharTok{+}\NormalTok{ t2 }\SpecialCharTok{+}\NormalTok{ t3)}
+\FunctionTok{summary}\NormalTok{(m1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = soi ~ t1)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.04140 -0.24183  0.01935  0.27727  0.83866 
+## 
+## Coefficients:
+##             Estimate Std. Error t value  Pr(>|t|)    
+## (Intercept) 13.70367    3.18873   4.298 0.0000212 ***
+## t1          -0.00692    0.00162  -4.272 0.0000236 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.3756 on 451 degrees of freedom
+## Multiple R-squared:  0.0389, Adjusted R-squared:  0.03677 
+## F-statistic: 18.25 on 1 and 451 DF,  p-value: 0.00002359
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(m2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = soi ~ t1 + t2)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.0529 -0.2443  0.0129  0.2658  0.8412 
+## 
+## Coefficients:
+##                 Estimate   Std. Error t value Pr(>|t|)
+## (Intercept) -496.7608959  644.3532809  -0.771    0.441
+## t1             0.5116415    0.6545674   0.782    0.435
+## t2            -0.0002634    0.0003325  -0.792    0.429
+## 
+## Residual standard error: 0.3758 on 450 degrees of freedom
+## Multiple R-squared:  0.04024,    Adjusted R-squared:  0.03597 
+## F-statistic: 9.433 on 2 and 450 DF,  p-value: 0.00009698
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(m3)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = soi ~ t1 + t2 + t3)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.07047 -0.23026  0.01631  0.27232  0.85650 
+## 
+## Coefficients:
+##                   Estimate     Std. Error t value Pr(>|t|)
+## (Intercept) 130775.1717210 132546.0272739   0.987    0.324
+## t1            -199.5206669    201.9724492  -0.988    0.324
+## t2               0.2029392      0.2051726   0.989    0.323
+## t3              -0.0001032      0.0001042  -0.990    0.323
+## 
+## Residual standard error: 0.3758 on 449 degrees of freedom
+## Multiple R-squared:  0.04233,    Adjusted R-squared:  0.03593 
+## F-statistic: 6.616 on 3 and 449 DF,  p-value: 0.0002215
+\end{verbatim}
+
+Using \(t\) to denote the time index (in the same units returned by \texttt{time(soi)}), the fitted regression models were:
+
+\begin{align*}
+\widehat{\textbf{Model I:}}\quad 
+\widehat{SOI}_t 
+&= 13.70367 \;-\; 0.00692\, t,\\[6pt]
+\widehat{\textbf{Model II:}}\quad 
+\widehat{SOI}_t 
+&= -496.76090 \;+\; 0.51164\, t \;-\; 0.0002634\,\frac{t^2}{2!},\\[6pt]
+\widehat{\textbf{Model III:}}\quad 
+\widehat{SOI}_t 
+&= 130775.17172 \;-\; 199.52067\, t \;+\; 0.20294\,\frac{t^2}{2!}
+\;-\; 0.0001032\,\frac{t^3}{3!}.
+\end{align*}
+
+The adjusted \(R^2\) values are small in all cases (Model I: \(0.03677\); Model II: \(0.03597\); Model III: \(0.03593\)), indicating that time (and higher-order time polynomials) explains only a small fraction of the variation in SOI. The residual standard error is essentially unchanged across models as well (Model I: \(0.3756\); Model II: \(0.3758\); Model III: \(0.3758\)), meaning the typical size of the residual fluctuations around the fitted trend is about \(0.376\) SOI units regardless of whether we include quadratic or cubic terms. Overall, adding the higher-order terms provides negligible improvement after accounting for the extra parameters.
+
+\newpage
+
+\subsection{Problem 1 (a)}\label{problem-1-a}
+
+\begin{problem}[Problem 1 (a)]
+How many regression parameters are present in each of these models?
+\end{problem}
+
+Each model is a linear regression with an intercept plus one coefficient for each time term:
+
+\bgroup 
+  \begin{itemize}[
+    itemsep=3pt,
+    parsep=0pt,
+    topsep=6pt
+  ]
+
+\item \textbf{Model I} has \textbf{2} regression parameters: $\beta_0,\beta_1$.
+\item \textbf{Model II} has \textbf{3} regression parameters: $\beta_0,\beta_1,\beta_2$.
+\item \textbf{Model III} has \textbf{4} regression parameters: $\beta_0,\beta_1,\beta_2,\beta_3$.
+
+  \end{itemize}
+\egroup
+
+\newpage
+
+\subsection{Problem 1 (b)}\label{problem-1-b}
+
+\begin{problem}[Problem 1 (b)]
+Report ANOVA for all three models.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Check ANOVA.}
+\FunctionTok{anova}\NormalTok{(m1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: soi
+##            Df Sum Sq Mean Sq F value     Pr(>F)    
+## t1          1  2.576 2.57583  18.254 0.00002359 ***
+## Residuals 451 63.640 0.14111                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova}\NormalTok{(m2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: soi
+##            Df Sum Sq Mean Sq F value     Pr(>F)    
+## t1          1  2.576 2.57583 18.2392 0.00002378 ***
+## t2          1  0.089 0.08863  0.6276     0.4286    
+## Residuals 450 63.551 0.14122                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova}\NormalTok{(m3)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: soi
+##            Df Sum Sq Mean Sq F value    Pr(>F)    
+## t1          1  2.576 2.57583 18.2384 0.0000238 ***
+## t2          1  0.089 0.08863  0.6276    0.4287    
+## t3          1  0.139 0.13853  0.9809    0.3225    
+## Residuals 449 63.413 0.14123                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\subsubsection{Model 1}\label{model-1}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $1$   & $2.576$  & $2.57583$ & $18.254$ & $0.00002359$ \\
+Error      & $451$ & $63.640$ & $0.14111$ &          &              \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Model 2}\label{model-2}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $2$   & $2.665$  & $1.33223$ & $9.433$  & $0.00009698$ \\
+Error      & $450$ & $63.551$ & $0.14122$ &          &              \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Model 3}\label{model-3}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $3$   & $2.804$  & $0.93433$ & $6.616$  & $0.0002215$ \\
+Error      & $449$ & $63.413$ & $0.14123$ &          &             \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &             \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\newpage
+
+\subsection{Problem 1 (c)}\label{problem-1-c}
+
+\begin{problem}[Problem 1 (c)]
+Plot all three fits on the same plot and discuss which one fits SOI data the best.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot fitted lines.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot}\NormalTok{(soi, }\AttributeTok{main =} \StringTok{\textquotesingle{}Southern Oscillation Index over 453 Months\textquotesingle{}}\NormalTok{, }\AttributeTok{xlab =} \StringTok{\textquotesingle{}Time (year)\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}Southern Oscillation Index\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{new =} \ConstantTok{TRUE}\NormalTok{); }\FunctionTok{plot}\NormalTok{(m1}\SpecialCharTok{$}\NormalTok{fitted, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{col =} \DecValTok{2}\NormalTok{, }\AttributeTok{main =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xlab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{, }\AttributeTok{yaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{new =} \ConstantTok{TRUE}\NormalTok{); }\FunctionTok{plot}\NormalTok{(m2}\SpecialCharTok{$}\NormalTok{fitted, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{col =} \DecValTok{3}\NormalTok{, }\AttributeTok{main =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xlab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{, }\AttributeTok{yaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{new =} \ConstantTok{TRUE}\NormalTok{); }\FunctionTok{plot}\NormalTok{(m3}\SpecialCharTok{$}\NormalTok{fitted, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{col =} \DecValTok{4}\NormalTok{, }\AttributeTok{main =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xlab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{, }\AttributeTok{xaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{, }\AttributeTok{yaxt =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{legend}\NormalTok{(}\StringTok{\textquotesingle{}bottomleft\textquotesingle{}}\NormalTok{, }\FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}Observed\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Model 1\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Model 2\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Model 3\textquotesingle{}}\NormalTok{), }\AttributeTok{lty =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{), }\AttributeTok{lwd =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\FunctionTok{rep}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{3}\NormalTok{)), }\AttributeTok{col =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-5-1} \end{center}
+
+From the fitted-lines plot, all three trend models capture only a very smooth long-run component, while the observed SOI series fluctuates substantially around that trend. Model I imposes a straight (linear) downward trend, whereas Models II and III allow increasing curvature; visually, the higher-order models can appear to follow the broad shape slightly more in some sub-intervals, but they still miss the dominant month-to-month variability. The numerical fit measures confirm that this extra flexibility does not translate into better overall fit: Model I has the largest adjusted \(R^2\) (\(0.03677\)) compared with Model II (\(0.03597\)) and Model III (\(0.03593\)), and the residual standard errors are essentially the same for all three models (about \(0.376\)). Thus, despite the added polynomial terms, Models II and III do not provide a meaningful improvement over the simpler linear trend model, and Model I is preferred on both adjusted \(R^2\) and simplicity (although it may seem somewhat counterintuitive to what the graph may suggest; to be fair, we are splitting hairs at this point).
+
+\newpage
+
+\subsection{Problem 1 (d)}\label{problem-1-d}
+
+\begin{problem}[Problem 1 (d)]
+Plot detrended data from all three on separate plots, and compare residuals to discuss which model did better.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot detrended data for model 1.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot}\NormalTok{(}\FunctionTok{time}\NormalTok{(soi), m1}\SpecialCharTok{$}\NormalTok{residuals, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{main =} \StringTok{\textquotesingle{}Detrended Data for Model 1\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{xlab =} \StringTok{\textquotesingle{}Time (year)\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}Residual\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-6-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot detrended data for model 2.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot}\NormalTok{(}\FunctionTok{time}\NormalTok{(soi), m2}\SpecialCharTok{$}\NormalTok{residuals, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{main =} \StringTok{\textquotesingle{}Detrended Data for Model 2\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{xlab =} \StringTok{\textquotesingle{}Time (year)\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}Residual\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-6-2} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot detrended data for model 3.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot}\NormalTok{(}\FunctionTok{time}\NormalTok{(soi), m3}\SpecialCharTok{$}\NormalTok{residuals, }\AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{main =} \StringTok{\textquotesingle{}Detrended Data for Model 3\textquotesingle{}}\NormalTok{,}
+       \AttributeTok{xlab =} \StringTok{\textquotesingle{}Time (year)\textquotesingle{}}\NormalTok{, }\AttributeTok{ylab =} \StringTok{\textquotesingle{}Residual\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-6-3} \end{center}
+
+The detrended series (residuals) from all three models look very similar: each fluctuates around zero with roughly constant spread over time, and none of the three residual plots shows a dramatic reduction in structure compared to the others. This matches the near-identical residual standard errors (about 0.376 for all three models) and the fact that adjusted \(R^2\) does not improve when moving from Model I to Models II and III. Overall, Model I performs at least as well as the more complex models, and the residual plots support choosing the simplest trend specification among the three.
+
+\newpage
+
+\section{Problem 2}\label{problem-2}
+
+\begin{problem}[Problem 2]
+Consider the Northeast temperature case study.
+\end{problem}
+
+\subsection{Problem 2 (i)}\label{problem-2-i}
+
+\begin{problem}[Problem 2 (i)]
+Report time series plots for three sites (data in Moodle). Include plots (multiple in one plot) for max, min, and avg. temperature for each site.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Load data.}
+\NormalTok{NewHaven  }\OtherTok{\textless{}{-}} \FunctionTok{ts\_seasonal}\NormalTok{(}\StringTok{\textquotesingle{}data/Climate\_Northeast\_NewHavenCT.xlsx\textquotesingle{}}\NormalTok{)}
+\NormalTok{Warwick   }\OtherTok{\textless{}{-}} \FunctionTok{ts\_seasonal}\NormalTok{(}\StringTok{\textquotesingle{}data/Climate\_Northeast\_WarwickRI.xlsx\textquotesingle{}}\NormalTok{)}
+\NormalTok{Worcester }\OtherTok{\textless{}{-}} \FunctionTok{ts\_seasonal}\NormalTok{(}\StringTok{\textquotesingle{}data/Climate\_Northeast\_WorcesterMA.xlsx\textquotesingle{}}\NormalTok{)}
+
+\CommentTok{\# Make static time series plot for New Haven.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{1}\NormalTok{), }\AttributeTok{mar =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\NormalTok{  ylim }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{min}\NormalTok{(}\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_min, }\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_avg, }\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{), }\FunctionTok{max}\NormalTok{(}\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_min, }\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_avg, }\FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{))}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(NewHaven, }\StringTok{\textquotesingle{}New Haven, CT\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}max\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(NewHaven, }\StringTok{\textquotesingle{}New Haven, CT\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}avg\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(NewHaven, }\StringTok{\textquotesingle{}New Haven, CT\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}min\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-7-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Make static time series plot for Warwick.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{1}\NormalTok{), }\AttributeTok{mar =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\NormalTok{  ts\_list }\OtherTok{\textless{}{-}} \FunctionTok{make\_site\_ts}\NormalTok{(Warwick)}
+\NormalTok{  ylim }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{min}\NormalTok{(ts\_list}\SpecialCharTok{$}\NormalTok{ts\_min, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_avg, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{), }\FunctionTok{max}\NormalTok{(ts\_list}\SpecialCharTok{$}\NormalTok{ts\_min, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_avg, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{))}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Warwick, }\StringTok{\textquotesingle{}Warwick, RI\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}max\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Warwick, }\StringTok{\textquotesingle{}Warwick, RI\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}avg\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Warwick, }\StringTok{\textquotesingle{}Warwick, RI\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}min\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-7-2} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Make static time series plot for Worcester.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{1}\NormalTok{), }\AttributeTok{mar =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\NormalTok{  ts\_list }\OtherTok{\textless{}{-}} \FunctionTok{make\_site\_ts}\NormalTok{(Worcester)}
+\NormalTok{  ylim }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{min}\NormalTok{(ts\_list}\SpecialCharTok{$}\NormalTok{ts\_min, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_avg, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{), }\FunctionTok{max}\NormalTok{(ts\_list}\SpecialCharTok{$}\NormalTok{ts\_min, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_avg, ts\_list}\SpecialCharTok{$}\NormalTok{ts\_max, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{))}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Worcester, }\StringTok{\textquotesingle{}Worcester, MA\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}max\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Worcester, }\StringTok{\textquotesingle{}Worcester, MA\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}avg\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+  \FunctionTok{plot\_site\_static\_ts}\NormalTok{(Worcester, }\StringTok{\textquotesingle{}Worcester, MA\textquotesingle{}}\NormalTok{, }\AttributeTok{which =} \StringTok{\textquotesingle{}min\textquotesingle{}}\NormalTok{, }\AttributeTok{show\_x =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{show\_title =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{ylim =}\NormalTok{ ylim)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics{Homework1_files/figure-latex/unnamed-chunk-7-3} \end{center}
+
+\newpage
+
+\subsection{Problem 2 (ii)}\label{problem-2-ii}
+
+\begin{problem}[Problem 2 (ii)]
+Make interactive time series plots and share links for interactive plots.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Make interactive plots.}
+\NormalTok{p\_NewHaven }\OtherTok{\textless{}{-}} \FunctionTok{plot\_site\_interactive\_ts}\NormalTok{(NewHaven, }\StringTok{\textquotesingle{}New Haven, CT\textquotesingle{}}\NormalTok{)}
+\NormalTok{p\_Warwick }\OtherTok{\textless{}{-}} \FunctionTok{plot\_site\_interactive\_ts}\NormalTok{(Warwick, }\StringTok{\textquotesingle{}Warwick, RI\textquotesingle{}}\NormalTok{)}
+\NormalTok{p\_Worcester }\OtherTok{\textless{}{-}} \FunctionTok{plot\_site\_interactive\_ts}\NormalTok{(Worcester, }\StringTok{\textquotesingle{}Worcester, MA\textquotesingle{}}\NormalTok{)}
+\FunctionTok{dir\_create}\NormalTok{(}\StringTok{\textquotesingle{}plots\textquotesingle{}}\NormalTok{)}
+\NormalTok{htmlwidgets}\SpecialCharTok{::}\FunctionTok{saveWidget}\NormalTok{(p\_NewHaven, }\StringTok{\textquotesingle{}plots/NewHaven.html\textquotesingle{}}\NormalTok{, }\AttributeTok{selfcontained =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{htmlwidgets}\SpecialCharTok{::}\FunctionTok{saveWidget}\NormalTok{(p\_Warwick, }\StringTok{\textquotesingle{}plots/Warwick.html\textquotesingle{}}\NormalTok{, }\AttributeTok{selfcontained =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{htmlwidgets}\SpecialCharTok{::}\FunctionTok{saveWidget}\NormalTok{(p\_Worcester, }\StringTok{\textquotesingle{}plots/Worcester.html\textquotesingle{}}\NormalTok{, }\AttributeTok{selfcontained =} \ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Here are the interactive plots for \href{https://rentosaijo.github.io/STA209/plots/NewHaven.html}{New Haven}, \href{https://rentosaijo.github.io/STA209/plots/Warwick.html}{Warwick}, and \href{https://rentosaijo.github.io/STA209/plots/Worcester.html}{Worcester}.
+
+\newpage
+
+\subsection{Problem 2 (iii)}\label{problem-2-iii}
+
+\begin{problem}[Problem 2 (iii)]
+Compare the key features of temperature time series for your sites.
+\end{problem}
+
+All three sites (New Haven, Warwick, and Worcester) show a very strong and highly regular seasonal pattern, with temperatures rising in the warm season and falling in the cold season each year; this seasonality is present in the Max, Avg, and Min series and is the dominant visible feature across the entire sample. In terms of long-run trend, none of the sites shows an obvious dramatic monotone change, although the centers of several of the series appear at most to drift slightly upward over the decades (subtle relative to the seasonal swings and really if you stare it hard enough xD, but largely no movement). The main differences across sites are in level and variability: Worcester is generally colder than the coastal sites, with noticeably lower winter lows (Min dips further below \(0^\circ\)F) and a wider overall annual range, while New Haven and Warwick tend to have milder minima and slightly higher baselines consistent with a more coastal climate. Variability looks broadly stable over time for New Haven and Worcester (no clear fanning in/out of the seasonal amplitude), whereas Warwick shows an evident mid-sample disruption in the Min series where the seasonal swings compress and the level shifts for an extended period before returning to the earlier seasonal behavior; aside from that segment, the variability is fairly consistent and there is no strong sign of persistent volatility clustering in any of the three sites beyond occasional isolated extreme seasons.
+
+\newpage
+
+\section{Project}\label{project}
+
+\subsection{Project (i)}\label{project-i}
+
+\begin{problem}[Project (i)]
+Discuss possible time series topics you are interested in.
+\end{problem}
+
+I am interested in time series problems in hockey analytics where player performance and team context evolve over repeated games. One topic is understanding whether apparent hot streaks and slumps reflect real changes in underlying performance or are mostly random variation, and how to summarize short-term form in a statistically sound way. Another topic is how offensive and defensive impact measures change over time, especially when distinguishing noisy outcomes (goals, points) from process-based measures such as expected goals. I am also interested in identifying meaningful shifts in a player's role or effectiveness over a season or across seasons (for example, changes that may coincide with usage, linemates, or special-teams opportunities), and in forecasting near-future game performance using information from recent games while accounting for the fact that consecutive games are not independent.
+
+\newpage
+
+\subsection{Project (ii)}\label{project-ii}
+
+\begin{problem}[Project (ii)]
+Share potential inquiry questions.
+\end{problem}
+
+Using the per-game log as an equally spaced time series (one observation per game), I would like to investigate the following inquiry questions. First, do Martin Nečas's underlying performance measures show persistent short-term dependence from game to game (i.e., are strong games more likely to be followed by strong games), or do they behave approximately like independent noise around a stable level? Second, are there identifiable stretches of games where his baseline level appears to shift (for example, sustained increases or decreases in individual expected goals, on-ice expected goals for/against, or their derived differentials), suggesting changes in role, effectiveness, or context? Third, how stable are ``recent-form'' summaries: over what window of recent games do rolling averages become informative while still responding quickly to real changes? Fourth, can we forecast next-game performance metrics (such as individual expected goals or on-ice expected goal differential) better than a simple long-run average by incorporating recent game history, and if so, how much improvement do we get in predictive accuracy? Finally, how does variability change over time: are there periods where game-to-game fluctuations become noticeably larger or smaller, and do those periods align with changes in usage or season-to-season transitions?
+
+\newpage
+
+\subsection{Project (iii)}\label{project-iii}
+
+\begin{problem}[Project (iii)]
+Discuss potential datasets that could be used for the project.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Aggregate data.}
+\NormalTok{game\_logs }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{()}
+\NormalTok{seasonIds }\OtherTok{\textless{}{-}}\NormalTok{ nhlscraper}\SpecialCharTok{::}\FunctionTok{player\_seasons}\NormalTok{(}\AttributeTok{player =} \DecValTok{8480039}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{  dplyr}\SpecialCharTok{::}\FunctionTok{pull}\NormalTok{(seasonId)}
+\ControlFlowTok{for}\NormalTok{ (seasonId }\ControlFlowTok{in}\NormalTok{ seasonIds) \{}
+\NormalTok{  game\_logs }\OtherTok{\textless{}{-}}\NormalTok{ dplyr}\SpecialCharTok{::}\FunctionTok{bind\_rows}\NormalTok{(game\_logs, nhlscraper}\SpecialCharTok{::}\FunctionTok{player\_game\_log}\NormalTok{(}\AttributeTok{player =} \DecValTok{8480039}\NormalTok{, }\AttributeTok{season =}\NormalTok{ seasonId, }\AttributeTok{game\_type =} \DecValTok{2}\NormalTok{))}
+\NormalTok{\}}
+\NormalTok{game\_logs }\OtherTok{\textless{}{-}}\NormalTok{ game\_logs }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{    dplyr}\SpecialCharTok{::}\FunctionTok{arrange}\NormalTok{(gameId) }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{    dplyr}\SpecialCharTok{::}\FunctionTok{select}\NormalTok{(gameId, points, goals, assists, plusMinus, shots, shifts, toi)}
+
+\CommentTok{\# Display tail.}
+\FunctionTok{table\_latex}\NormalTok{(game\_logs }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{slice\_tail}\NormalTok{(}\AttributeTok{n =} \DecValTok{5}\NormalTok{), }\FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}Game ID\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Points\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Goals\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Assists\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}+/{-}\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Shots\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Shifts\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Time on Ice\textquotesingle{}}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccccccc}
+\toprule
+Game ID & Points & Goals & Assists & +/- & Shots & Shifts & Time on Ice\\
+\midrule
+2025020789 & 0 & 0 & 0 & -1 & 1 & 27 & 27:03\\
+2025020805 & 2 & 0 & 2 & 0 & 9 & 22 & 25:16\\
+2025020819 & 0 & 0 & 0 & 1 & 2 & 22 & 20:57\\
+2025020841 & 0 & 0 & 0 & -3 & 0 & 25 & 22:37\\
+2025020845 & 0 & 0 & 0 & -3 & 3 & 20 & 20:57\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A primary dataset for this project is the aggregated NHL game log data for Martin Nečas (playerId 8480039), collected across seasons using \texttt{nhlscraper} and combined into a single time-ordered table with 493 observations (games). The dataset includes per-game outcomes such as goals, assists, points, plus/minus, power-play production, shots, penalty minutes, shifts, and time-on-ice, along with contextual fields such as home/road and opponent identifiers. Because the unit of observation is a game, an equidistant time variable can be defined as game number (1 through 493), which makes standard time series methods directly applicable without irregular spacing. In addition, I can augment each game with expected-goals features derived from my existing fine-tuned LightGBM xG \href{https://github.com/RentoSaijo/rentosrink/blob/1951a54ea0097300fc14b050320dfed90512e19d/models/xG/compare.pdf}{model}, including individual xG and on-ice xG for and against (and functions of these such as xG differential, share, percentage, and rates per time-on-ice). This augmentation would allow me to model a cleaner underlying performance signal than raw goals/points, since xG is designed to reduce outcome noise. If needed, further enrichment could include schedule-derived variables (days of rest, back-to-back indicator, travel proxies), and opponent strength proxies, which would help separate true player-level dynamics from changing context.
+
+\end{document}

@@ -1,0 +1,617 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Homework 1
+author: |
+  Rento Saijo
+date: 'February 11, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{xcolor}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize\textbf{Cell \thecell},
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \DefineVerbatimEnvironment{snippet}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      fontsize=\footnotesize,
+      frame=single,
+      listparameters=\setlength{\topsep}{\baselineskip}\setlength{\partopsep}{0pt}
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \newenvironment{alphenum}{
+      \begin{enumerate}[
+        label=(\alph*),
+        itemsep=3pt,
+        parsep=0pt,
+        topsep=6pt
+      ]
+    }{
+      \end{enumerate}
+    }
+    \newenvironment{items}{
+      \begin{itemize}[
+        itemsep=3pt,
+        parsep=0pt,
+        topsep=6pt
+      ]
+    }{
+      \end{itemize}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\Pois}{\mathrm{Pois}}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r setup, include = FALSE}
+# ----- Setup ----- #
+
+# Set options.
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = 'center')
+options(width = 125)
+options(scipen = 999)
+
+# Load libraries.
+suppressMessages(library(tidyverse))
+suppressMessages(library(readxl))
+suppressMessages(library(fs))
+suppressMessages(library(plotly))
+suppressMessages(library(htmlwidgets))
+suppressMessages(library(astsa))
+suppressMessages(library(nhlscraper))
+suppressMessages(library(showtext))
+suppressMessages(library(Cairo))
+
+# Set fonts.
+sysfonts::font_add(
+  family = 'cmuserif',
+  regular = '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf',
+  bold = '/Users/rsai_91/Library/Fonts/cmu.serif-bold.ttf',
+  italic = '/Users/rsai_91/Library/Fonts/cmu.serif-italic.ttf',
+  bolditalic = '/Users/rsai_91/Library/Fonts/cmu.serif-bolditalic.ttf'
+)
+showtext::showtext_opts(dpi = 300)
+showtext::showtext_auto(enable = TRUE)
+knitr::opts_chunk$set(dev = 'CairoPDF')
+par(family = 'cmuserif')
+ggplot2::theme_set(ggplot2::theme_minimal(base_family = 'cmuserif', base_size = 10))
+
+# Set seed.
+set.seed(20060527)
+
+# ----- Helpers ----- #
+
+# Plot LaTeX table from data.frame.
+table_latex = function(data, col_names = NULL, caption = NULL) {
+  data %>%
+    knitr::kable(
+      format    = 'latex',
+      booktabs  = TRUE,
+      escape    = FALSE,
+      col.names = col_names,
+      caption   = caption,
+      linesep   = '',
+      align     = rep('c', ncol(data)),
+      ) %>%
+    kableExtra::kable_styling(
+      position = 'center',
+      latex_options = c('HOLD_position'))
+}
+
+# Read from Excel.
+ts_seasonal <- function(filename, nums = 1:4) {
+  data.seasonal <- matrix(0, nrow = 1, ncol = 5)
+  for(i in 1:length(nums)){
+    dataexcel <- suppressMessages(readxl::read_excel(filename, sheet = nums[i], range = 'D7:H77'))
+    dataexcel <- dataexcel[-1,-2]
+    dataexcel <- dplyr::filter(dataexcel, !is.na(dataexcel$Avg))
+    data <- dplyr::mutate(dataexcel, Month = nums[i])
+    colnames(data.seasonal) <- colnames(data)
+    data.seasonal <- rbind(data.seasonal, data)
+  }
+  data.seasonal <- data.seasonal[-1, ]
+  data.seasonal <- dplyr::mutate(data.seasonal, Year = readr::parse_number(as.character(Year)))
+  data.seasonal <- dplyr::filter(data.seasonal, !is.na(Year))
+  data.seasonal <- dplyr::arrange(data.seasonal, Year)
+  dplyr::mutate(data.seasonal, Month = factor(Month, levels = 1:4, labels = c('January', 'April', 'July', 'October')))
+}
+
+# Make ts objects (freq = 4) for Min/Avg/Max, starting at the earliest year.
+make_site_ts <- function(df) {
+  df <- dplyr::mutate(df, Year = readr::parse_number(as.character(Year)))
+  df <- dplyr::filter(df, !is.na(Year))
+  df$Season <- as.numeric(df$Month)
+  df <- dplyr::arrange(df, Year, Season)
+  start_year <- min(df$Year, na.rm = TRUE)
+  ts_min <- stats::ts(df$Min, start = c(start_year, 1), frequency = 4)
+  ts_avg <- stats::ts(df$Avg, start = c(start_year, 1), frequency = 4)
+  ts_max <- stats::ts(df$Max, start = c(start_year, 1), frequency = 4)
+  list(ts_min = ts_min, ts_avg = ts_avg, ts_max = ts_max, start_year = start_year)
+}
+
+# Plot min, max, and avg of site statically.
+plot_site_static_ts <- function(df, site, which = c('max', 'avg', 'min'), show_x = FALSE, show_title = FALSE, ylim = NULL) {
+  ts_list <- make_site_ts(df)
+  if (is.null(ylim)) { ylim <- c(min(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE), max(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE)) }
+  if (which[1] == 'max') { y <- ts_list$ts_max; yl <- 'Max (°F)' }
+  if (which[1] == 'avg') { y <- ts_list$ts_avg; yl <- 'Avg (°F)' }
+  if (which[1] == 'min') { y <- ts_list$ts_min; yl <- 'Min (°F)' }
+  astsa::tsplot(y, main = if (show_title) paste(site, 'Temperature Time Series') else '', xlab = if (show_x) 'Time (years)' else '', ylab = yl, ylim = ylim, xaxt = if (show_x) 's' else 'n')
+  invisible(ts_list)
+}
+
+# Plot min, max, and avg of site interactively.
+plot_site_interactive_ts <- function(df, site) {
+  ts_list <- make_site_ts(df)
+  t <- as.numeric(stats::time(ts_list$ts_avg))
+  dfp <- tibble::tibble(Time = t, Max = as.numeric(ts_list$ts_max), Avg = as.numeric(ts_list$ts_avg), Min = as.numeric(ts_list$ts_min))
+  pmax <- plotly::plot_ly(dfp, x = ~Time, y = ~Max, name = 'Max') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Max (°F)'))
+  pavg <- plotly::plot_ly(dfp, x = ~Time, y = ~Avg, name = 'Avg') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Avg (°F)'))
+  pmin <- plotly::plot_ly(dfp, x = ~Time, y = ~Min, name = 'Min') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Min (°F)'))
+  plotly::subplot(pmax, pavg, pmin, nrows = 3, shareX = TRUE, titleY = TRUE) %>% plotly::layout(title = list(text = paste(site, 'Temperature Time Series')))
+}
+
+# Plot with LaTeX.
+with_par <- function(expr) { 
+    op <- par(no.readonly = TRUE)
+    on.exit(par(op))
+    force(expr) 
+}
+with_family <- function(expr, family = 'cmuserif') {
+    op <- par(no.readonly = TRUE)
+    on.exit(par(op))
+    par(family = family)
+    force(expr) 
+}
+```
+
+# Disclosure
+
+ChatGPT-5.2 was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely; some formatting code were also provided by Derin Gezgin. In the setup chunk, libraries were loaded and some helper functions were defined including but not limited to `plot_site_static_ts()` and `plot_site_interactive_ts`. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework1.Rmd) for more details.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem 1]
+Consider the Southern oscillation index data (\texttt{soi}) available in the R package \texttt{astsa}. Use this data to do the following in R and then report your results.
+\end{problem}
+
+The Southern Oscillation Index (SOI) dataset is a monthly time series with 453 observations covering the years 1950 through 1987. It is represented in the form \texttt{Time-Series [1:453]} (notated as running from 1950 to 1988 in the printed format) and is shown as a numeric sequence (e.g., \texttt{0.377, 0.246, 0.311, 0.104, -0.016, 0.235, \dots}). The series is intended to pair with \texttt{rec} (Recruitment) for related analyses. The data were furnished by Dr.\ Roy Mendelssohn of the Pacific Fisheries Environmental Laboratory, NOAA (personal communication). Demonstrations of \texttt{astsa} capabilities are referenced under \emph{FUN WITH ASTSA}, and the most recent version of the package is maintained on GitHub along with the \texttt{NEWS} and \texttt{ChangeLog} files; additional webpages for the associated texts and help using \textsf{R} for time series analysis are available at the author’s site.
+
+\newpage
+
+## Problem 1 (i)
+
+\begin{problem}[Problem 1 (i)]
+Make a time series plot and comment on the interesting features.
+\end{problem}
+
+```{r}
+# Load data.
+data(soi)
+
+# Make time series plot.
+with_family({
+  data(soi)
+  plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time (year)', ylab = 'Southern Oscillation Index')
+})
+```
+
+From the time series plot of the Southern Oscillation Index (SOI) over 453 months, there is no clear long-run upward or downward trend; instead, the series oscillates around a roughly constant mean near zero, so any trend component appears weak and essentially flat (if anything, slight downward trend). In terms of seasonality, there is a clear repeating pattern at an approximately annual frequency: the SOI exhibits a recurring within-year cycle that repeats from year to year (consistent with a 12-month seasonal structure), even though the strength of the cycle is sometimes masked by the larger irregular swings between positive and negative phases. Regarding variability, the SOI values remain in a relatively stable range of about $-1.0$ to $1.0$ (so the overall spread is roughly $2$ units), and the amplitude of fluctuations looks fairly constant across time, suggesting approximate homoskedasticity (no clear fanning in/out of variance). Finally, there is no strong evidence of volatility clustering: although there are occasional bursts of larger positive/negative deviations, these do not persist in a sustained way, and the variability returns quickly to its typical level.
+
+\newpage
+
+## Problem 1 (ii)
+
+\begin{problem}[Problem 1 (ii)]
+Show decomposition of this time series and comment on the components.
+\end{problem}
+
+```{r, fig.height = 5}
+# Make decomposition plots.
+with_family({
+  plot(stats::decompose(soi, type = 'additive'))
+  plot(stats::decompose(soi, type = 'multiplicative'))
+})
+```
+
+We were instructed in class that no comments were necessary for the decomposition graphs as they'd be a repeat of part (i).
+
+\newpage
+
+## Problem 1 (iii)
+
+\begin{problem}[Problem 1 (iii)]
+Fit following three different models to the SOI data:
+\begin{align*}
+\textbf{Model I:}\quad & SOI_t = \beta_0 + \beta_1 t + Noise_t \\
+\textbf{Model II:}\quad & SOI_t = \beta_0 + \beta_1 t + \frac{\beta_2 t^2}{2!} + Noise_t \\
+\textbf{Model III:}\quad & SOI_t = \beta_0 + \beta_1 t + \frac{\beta_2 t^2}{2!} + \frac{\beta_3 t^3}{3!} + Noise_t
+\end{align*}
+\end{problem}
+
+```{r}
+# Fit models.
+t1 <- stats::time(soi)
+t2 <- t1^2 / factorial(2)
+t3 <- t1^3 / factorial(3)
+m1 <- lm(soi ~ t1)
+m2 <- lm(soi ~ t1 + t2)
+m3 <- lm(soi ~ t1 + t2 + t3)
+summary(m1)
+summary(m2)
+summary(m3)
+```
+
+Using $t$ to denote the time index (in the same units returned by \texttt{time(soi)}), the fitted regression models were:
+
+\begin{align*}
+\widehat{\textbf{Model I:}}\quad 
+\widehat{SOI}_t 
+&= 13.70367 \;-\; 0.00692\, t,\\[6pt]
+\widehat{\textbf{Model II:}}\quad 
+\widehat{SOI}_t 
+&= -496.76090 \;+\; 0.51164\, t \;-\; 0.0002634\,\frac{t^2}{2!},\\[6pt]
+\widehat{\textbf{Model III:}}\quad 
+\widehat{SOI}_t 
+&= 130775.17172 \;-\; 199.52067\, t \;+\; 0.20294\,\frac{t^2}{2!}
+\;-\; 0.0001032\,\frac{t^3}{3!}.
+\end{align*}
+
+The adjusted $R^2$ values are small in all cases (Model I: $0.03677$; Model II: $0.03597$; Model III: $0.03593$), indicating that time (and higher-order time polynomials) explains only a small fraction of the variation in SOI. The residual standard error is essentially unchanged across models as well (Model I: $0.3756$; Model II: $0.3758$; Model III: $0.3758$), meaning the typical size of the residual fluctuations around the fitted trend is about $0.376$ SOI units regardless of whether we include quadratic or cubic terms. Overall, adding the higher-order terms provides negligible improvement after accounting for the extra parameters.
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+How many regression parameters are present in each of these models?
+\end{problem}
+
+Each model is a linear regression with an intercept plus one coefficient for each time term:
+
+\begin{items}
+\item \textbf{Model I} has \textbf{2} regression parameters: $\beta_0,\beta_1$.
+\item \textbf{Model II} has \textbf{3} regression parameters: $\beta_0,\beta_1,\beta_2$.
+\item \textbf{Model III} has \textbf{4} regression parameters: $\beta_0,\beta_1,\beta_2,\beta_3$.
+\end{items}
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+Report ANOVA for all three models.
+\end{problem}
+
+```{r}
+# Check ANOVA.
+anova(m1)
+anova(m2)
+anova(m3)
+```
+
+### Model 1
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $1$   & $2.576$  & $2.57583$ & $18.254$ & $0.00002359$ \\
+Error      & $451$ & $63.640$ & $0.14111$ &          &              \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+### Model 2
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $2$   & $2.665$  & $1.33223$ & $9.433$  & $0.00009698$ \\
+Error      & $450$ & $63.551$ & $0.14122$ &          &              \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+### Model 3
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Source & Df & SS & MS & F-stat & P-value \\
+\midrule
+Regression & $3$   & $2.804$  & $0.93433$ & $6.616$  & $0.0002215$ \\
+Error      & $449$ & $63.413$ & $0.14123$ &          &             \\
+Total      & $452$ & $66.216$ & $0.14650$ &          &             \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+Plot all three fits on the same plot and discuss which one fits SOI data the best.
+\end{problem}
+
+```{r, fig.height = 5}
+# Plot fitted lines.
+with_family({
+  plot(soi, main = 'Southern Oscillation Index over 453 Months', xlab = 'Time (year)', ylab = 'Southern Oscillation Index')
+  par(new = TRUE); plot(m1$fitted, type = 'l', lwd = 2, lty = 2, col = 2, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
+  par(new = TRUE); plot(m2$fitted, type = 'l', lwd = 2, lty = 2, col = 3, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
+  par(new = TRUE); plot(m3$fitted, type = 'l', lwd = 2, lty = 2, col = 4, main = '', xlab = '', ylab = '', xaxt = 'n', yaxt = 'n')
+  legend('bottomleft', c('Observed', 'Model 1', 'Model 2', 'Model 3'), lty = c(1, 2, 2, 2), lwd = c(1, rep(2, 3)), col = 1:4)
+})
+```
+
+From the fitted-lines plot, all three trend models capture only a very smooth long-run component, while the observed SOI series fluctuates substantially around that trend. Model I imposes a straight (linear) downward trend, whereas Models II and III allow increasing curvature; visually, the higher-order models can appear to follow the broad shape slightly more in some sub-intervals, but they still miss the dominant month-to-month variability. The numerical fit measures confirm that this extra flexibility does not translate into better overall fit: Model I has the largest adjusted $R^2$ ($0.03677$) compared with Model II ($0.03597$) and Model III ($0.03593$), and the residual standard errors are essentially the same for all three models (about $0.376$). Thus, despite the added polynomial terms, Models II and III do not provide a meaningful improvement over the simpler linear trend model, and Model I is preferred on both adjusted $R^2$ and simplicity (although it may seem somewhat counterintuitive to what the graph may suggest; to be fair, we are splitting hairs at this point).
+
+\newpage
+
+## Problem 1 (d)
+
+\begin{problem}[Problem 1 (d)]
+Plot detrended data from all three on separate plots, and compare residuals to discuss which model did better.
+\end{problem}
+
+```{r}
+# Plot detrended data for model 1.
+with_family({
+  plot(time(soi), m1$residuals, type = 'l',
+       main = 'Detrended Data for Model 1',
+       xlab = 'Time (year)', ylab = 'Residual')
+})
+
+# Plot detrended data for model 2.
+with_family({
+  plot(time(soi), m2$residuals, type = 'l',
+       main = 'Detrended Data for Model 2',
+       xlab = 'Time (year)', ylab = 'Residual')
+})
+
+# Plot detrended data for model 3.
+with_family({
+  plot(time(soi), m3$residuals, type = 'l',
+       main = 'Detrended Data for Model 3',
+       xlab = 'Time (year)', ylab = 'Residual')
+})
+```
+
+The detrended series (residuals) from all three models look very similar: each fluctuates around zero with roughly constant spread over time, and none of the three residual plots shows a dramatic reduction in structure compared to the others. This matches the near-identical residual standard errors (about 0.376 for all three models) and the fact that adjusted $R^2$ does not improve when moving from Model I to Models II and III. Overall, Model I performs at least as well as the more complex models, and the residual plots support choosing the simplest trend specification among the three.
+
+\newpage
+
+# Problem 2
+
+\begin{problem}[Problem 2]
+Consider the Northeast temperature case study.
+\end{problem}
+
+## Problem 2 (i)
+
+\begin{problem}[Problem 2 (i)]
+Report time series plots for three sites (data in Moodle). Include plots (multiple in one plot) for max, min, and avg. temperature for each site.
+\end{problem}
+
+```{r, fig.height = 5}
+# Load data.
+NewHaven  <- ts_seasonal('data/Climate_Northeast_NewHavenCT.xlsx')
+Warwick   <- ts_seasonal('data/Climate_Northeast_WarwickRI.xlsx')
+Worcester <- ts_seasonal('data/Climate_Northeast_WorcesterMA.xlsx')
+
+# Make static time series plot for New Haven.
+with_family({
+  par(mfrow = c(3, 1), mar = c(2, 4, 2, 1))
+  ylim <- c(min(make_site_ts(NewHaven)$ts_min, make_site_ts(NewHaven)$ts_avg, make_site_ts(NewHaven)$ts_max, na.rm = TRUE), max(make_site_ts(NewHaven)$ts_min, make_site_ts(NewHaven)$ts_avg, make_site_ts(NewHaven)$ts_max, na.rm = TRUE))
+  plot_site_static_ts(NewHaven, 'New Haven, CT', which = 'max', show_x = FALSE, show_title = TRUE, ylim = ylim)
+  plot_site_static_ts(NewHaven, 'New Haven, CT', which = 'avg', show_x = FALSE, show_title = FALSE, ylim = ylim)
+  plot_site_static_ts(NewHaven, 'New Haven, CT', which = 'min', show_x = TRUE, show_title = FALSE, ylim = ylim)
+})
+
+# Make static time series plot for Warwick.
+with_family({
+  par(mfrow = c(3, 1), mar = c(2, 4, 2, 1))
+  ts_list <- make_site_ts(Warwick)
+  ylim <- c(min(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE), max(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE))
+  plot_site_static_ts(Warwick, 'Warwick, RI', which = 'max', show_x = FALSE, show_title = TRUE, ylim = ylim)
+  plot_site_static_ts(Warwick, 'Warwick, RI', which = 'avg', show_x = FALSE, show_title = FALSE, ylim = ylim)
+  plot_site_static_ts(Warwick, 'Warwick, RI', which = 'min', show_x = TRUE, show_title = FALSE, ylim = ylim)
+})
+
+# Make static time series plot for Worcester.
+with_family({
+  par(mfrow = c(3, 1), mar = c(2, 4, 2, 1))
+  ts_list <- make_site_ts(Worcester)
+  ylim <- c(min(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE), max(ts_list$ts_min, ts_list$ts_avg, ts_list$ts_max, na.rm = TRUE))
+  plot_site_static_ts(Worcester, 'Worcester, MA', which = 'max', show_x = FALSE, show_title = TRUE, ylim = ylim)
+  plot_site_static_ts(Worcester, 'Worcester, MA', which = 'avg', show_x = FALSE, show_title = FALSE, ylim = ylim)
+  plot_site_static_ts(Worcester, 'Worcester, MA', which = 'min', show_x = TRUE, show_title = FALSE, ylim = ylim)
+})
+```
+
+\newpage
+
+## Problem 2 (ii)
+
+\begin{problem}[Problem 2 (ii)]
+Make interactive time series plots and share links for interactive plots.
+\end{problem}
+
+```{r, eval = FALSE}
+# Make interactive plots.
+p_NewHaven <- plot_site_interactive_ts(NewHaven, 'New Haven, CT')
+p_Warwick <- plot_site_interactive_ts(Warwick, 'Warwick, RI')
+p_Worcester <- plot_site_interactive_ts(Worcester, 'Worcester, MA')
+dir_create('plots')
+htmlwidgets::saveWidget(p_NewHaven, 'plots/NewHaven.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(p_Warwick, 'plots/Warwick.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(p_Worcester, 'plots/Worcester.html', selfcontained = TRUE)
+```
+
+Here are the interactive plots for [New Haven](https://rentosaijo.github.io/STA209/plots/NewHaven.html), [Warwick](https://rentosaijo.github.io/STA209/plots/Warwick.html), and [Worcester](https://rentosaijo.github.io/STA209/plots/Worcester.html).
+
+\newpage
+
+## Problem 2 (iii)
+
+\begin{problem}[Problem 2 (iii)]
+Compare the key features of temperature time series for your sites.
+\end{problem}
+
+All three sites (New Haven, Warwick, and Worcester) show a very strong and highly regular seasonal pattern, with temperatures rising in the warm season and falling in the cold season each year; this seasonality is present in the Max, Avg, and Min series and is the dominant visible feature across the entire sample. In terms of long-run trend, none of the sites shows an obvious dramatic monotone change, although the centers of several of the series appear at most to drift slightly upward over the decades (subtle relative to the seasonal swings and really if you stare it hard enough xD, but largely no movement). The main differences across sites are in level and variability: Worcester is generally colder than the coastal sites, with noticeably lower winter lows (Min dips further below $0^\circ$F) and a wider overall annual range, while New Haven and Warwick tend to have milder minima and slightly higher baselines consistent with a more coastal climate. Variability looks broadly stable over time for New Haven and Worcester (no clear fanning in/out of the seasonal amplitude), whereas Warwick shows an evident mid-sample disruption in the Min series where the seasonal swings compress and the level shifts for an extended period before returning to the earlier seasonal behavior; aside from that segment, the variability is fairly consistent and there is no strong sign of persistent volatility clustering in any of the three sites beyond occasional isolated extreme seasons.
+
+\newpage
+
+# Project
+
+## Project (i)
+
+\begin{problem}[Project (i)]
+Discuss possible time series topics you are interested in.
+\end{problem}
+
+I am interested in time series problems in hockey analytics where player performance and team context evolve over repeated games. One topic is understanding whether apparent hot streaks and slumps reflect real changes in underlying performance or are mostly random variation, and how to summarize short-term form in a statistically sound way. Another topic is how offensive and defensive impact measures change over time, especially when distinguishing noisy outcomes (goals, points) from process-based measures such as expected goals. I am also interested in identifying meaningful shifts in a player’s role or effectiveness over a season or across seasons (for example, changes that may coincide with usage, linemates, or special-teams opportunities), and in forecasting near-future game performance using information from recent games while accounting for the fact that consecutive games are not independent.
+
+\newpage
+
+## Project (ii)
+
+\begin{problem}[Project (ii)]
+Share potential inquiry questions.
+\end{problem}
+
+Using the per-game log as an equally spaced time series (one observation per game), I would like to investigate the following inquiry questions. First, do Martin Nečas’s underlying performance measures show persistent short-term dependence from game to game (i.e., are strong games more likely to be followed by strong games), or do they behave approximately like independent noise around a stable level? Second, are there identifiable stretches of games where his baseline level appears to shift (for example, sustained increases or decreases in individual expected goals, on-ice expected goals for/against, or their derived differentials), suggesting changes in role, effectiveness, or context? Third, how stable are “recent-form” summaries: over what window of recent games do rolling averages become informative while still responding quickly to real changes? Fourth, can we forecast next-game performance metrics (such as individual expected goals or on-ice expected goal differential) better than a simple long-run average by incorporating recent game history, and if so, how much improvement do we get in predictive accuracy? Finally, how does variability change over time: are there periods where game-to-game fluctuations become noticeably larger or smaller, and do those periods align with changes in usage or season-to-season transitions?
+
+\newpage
+
+## Project (iii)
+
+\begin{problem}[Project (iii)]
+Discuss potential datasets that could be used for the project.
+\end{problem}
+
+```{r}
+# Aggregate data.
+game_logs <- data.frame()
+seasonIds <- nhlscraper::player_seasons(player = 8480039) %>% 
+  dplyr::pull(seasonId)
+for (seasonId in seasonIds) {
+  game_logs <- dplyr::bind_rows(game_logs, nhlscraper::player_game_log(player = 8480039, season = seasonId, game_type = 2))
+}
+game_logs <- game_logs %>% 
+    dplyr::arrange(gameId) %>% 
+    dplyr::select(gameId, points, goals, assists, plusMinus, shots, shifts, toi)
+
+# Display tail.
+table_latex(game_logs %>% slice_tail(n = 5), c('Game ID', 'Points', 'Goals', 'Assists', '+/-', 'Shots', 'Shifts', 'Time on Ice'))
+```
+
+A primary dataset for this project is the aggregated NHL game log data for Martin Nečas (playerId 8480039), collected across seasons using \texttt{nhlscraper} and combined into a single time-ordered table with 493 observations (games). The dataset includes per-game outcomes such as goals, assists, points, plus/minus, power-play production, shots, penalty minutes, shifts, and time-on-ice, along with contextual fields such as home/road and opponent identifiers. Because the unit of observation is a game, an equidistant time variable can be defined as game number (1 through 493), which makes standard time series methods directly applicable without irregular spacing. In addition, I can augment each game with expected-goals features derived from my existing fine-tuned LightGBM xG [model](https://github.com/RentoSaijo/rentosrink/blob/1951a54ea0097300fc14b050320dfed90512e19d/models/xG/compare.pdf), including individual xG and on-ice xG for and against (and functions of these such as xG differential, share, percentage, and rates per time-on-ice). This augmentation would allow me to model a cleaner underlying performance signal than raw goals/points, since xG is designed to reduce outcome noise. If needed, further enrichment could include schedule-derived variables (days of rest, back-to-back indicator, travel proxies), and opponent strength proxies, which would help separate true player-level dynamics from changing context.

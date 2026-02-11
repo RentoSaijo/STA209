@@ -7,6 +7,7 @@ suppressMessages(library(fs))
 suppressMessages(library(plotly))
 suppressMessages(library(htmlwidgets))
 suppressMessages(library(astsa))
+suppressMessages(library(nhlscraper))
 
 # Set seed.
 set.seed(20060527)
@@ -64,7 +65,7 @@ plot_site_interactive_ts <- function(df, site) {
   pmax <- plotly::plot_ly(dfp, x = ~Time, y = ~Max, name = 'Max') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Max (°F)'))
   pavg <- plotly::plot_ly(dfp, x = ~Time, y = ~Avg, name = 'Avg') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Avg (°F)'))
   pmin <- plotly::plot_ly(dfp, x = ~Time, y = ~Min, name = 'Min') %>% plotly::add_lines() %>% plotly::layout(yaxis = list(title = 'Min (°F)'))
-  plotly::subplot(pmax, pavg, pmin, nrows = 3, shareX = TRUE, titleY = TRUE) %>% plotly::layout(title = list(text = paste(site, 'Temperature Time Series (Interactive)')))
+  plotly::subplot(pmax, pavg, pmin, nrows = 3, shareX = TRUE, titleY = TRUE) %>% plotly::layout(title = list(text = paste(site, 'Temperature Time Series')))
 }
 
 # ----- Problem 1 ----- #
@@ -137,3 +138,11 @@ htmlwidgets::saveWidget(p_Worcester, 'plots/Worcester.html', selfcontained = TRU
 
 # ----- Project ----- #
 
+# Load data.
+game_logs <- data.frame()
+seasonIds <- nhlscraper::player_seasons(player = 8480039) %>% 
+  dplyr::pull(seasonId)
+for (seasonId in seasonIds) {
+  game_logs <- dplyr::bind_rows(game_logs, nhlscraper::player_game_log(player = 8480039, season = seasonId, game_type = 2))
+}
+game_logs <- dplyr::arrange(game_logs, gameId)
