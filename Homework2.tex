@@ -276,9 +276,9 @@ Consider the Southern oscillation index data (\texttt{soi}) from Homework 1. Use
 &= \beta_0 + \beta_1 t
 + \alpha_1\cos\!\left(\frac{2\pi t}{s}\right)
 + \alpha_2\sin\!\left(\frac{2\pi t}{s}\right)\\
-&\quad + \alpha_3\cos\!\left(\frac{4\pi t}{s}\right) \\
-&\quad + \alpha_4\sin\!\left(\frac{4\pi t}{s}\right) \\
-&\quad + W_t.
+&\quad + \alpha_3\cos\!\left(\frac{4\pi t}{s}\right)
++ \alpha_4\sin\!\left(\frac{4\pi t}{s}\right)
++ W_t.
 \end{align*}
 \end{problem}
 
@@ -469,9 +469,9 @@ The fitted models are:
 \widehat{\textbf{Model V:}}\quad
 \widehat{\text{SOI}}_t
 &= 12.797 - 0.006\,t - 0.008\,\cos\!\left(\frac{2\pi t}{12}\right) - 0.009\,\sin\!\left(\frac{2\pi t}{12}\right)\\
-&\quad - 0.043\,\cos\!\left(\frac{4\pi t}{12}\right) + 0.081\,\sin\!\left(\frac{4\pi t}{12}\right).
+&\quad - 0.043\,\cos\!\left(\frac{4\pi t}{12}\right) + 0.081\,\sin\!\left(\frac{4\pi t}{12}\right),
 \end{align*}
-where \(\text{SOI}_t\) denotes the Southern Oscillation Index at time \(t\), and \(s=12\) is the monthly seasonal period.
+where \(\text{SOI}_t\) denotes the Southern Oscillation Index at time \(t\).
 
 \newpage
 
@@ -539,7 +539,7 @@ Model V & 6 & 0.058 & 0.875 & -0.962 & 0.939\\
 Using the summary in (b), which model is selected to explain SOI and why?
 \end{problem}
 
-For explanation, we prioritize adjusted \(R^2\) and the overall model-summary F-tests. Model V has the largest adjusted \(R^2\), with \(R_a^2 = 0.058\). Its overall F-test is significant with \(F = 6.520\) and \(p = 0.000\). Also, Model III has \(F = 0.737\) and \(p = 0.479\), so it is not significant. Therefore, \textbf{Model V} is selected for explaining SOI variation among these candidates.
+For explanation, we prioritize adjusted \(R^2\). Model V has the largest adjusted \(R^2\), with \(R_a^2 = 0.058\). Also, its overall F-test is significant with \(F = 6.520\) and \(p = 0.000\) (although all others have fairly low values as well). All in all, though, \textbf{Model V} is selected for explaining SOI variation among these candidates.
 
 \newpage
 
@@ -549,7 +549,7 @@ For explanation, we prioritize adjusted \(R^2\) and the overall model-summary F-
 Based on AIC, AICC and BIC, which model is selected and what is it best for?
 \end{problem}
 
-AIC and AICC are minimized by \textbf{Model V}, with \(AIC = 0.875\) and \(AICC = -0.962\), but BIC is minimized by \textbf{Model I}, with \(BIC = 0.916\). Since these criteria disagree and BIC applies the strongest complexity penalty, we select \textbf{Model I}. This selected model is best for a more parsimonious in-sample representation rather than maximizing seasonal flexibility.
+AIC and AICC are minimized by \textbf{Model V}, with \(AIC = 0.875\) and \(AICC = -0.962\), but BIC is minimized by \textbf{Model I}, with \(BIC = 0.916\). Since these criteria disagree and BIC applies the strongest complexity penalty, we select \textbf{Model I}. This selected model maximizes the probability that the sample data are from the suggested model.
 
 \newpage
 
@@ -691,13 +691,13 @@ Model V & 0.057 & 101.014 & 0.106 & 0.293 & 110.106\\
 \end{tabular}
 \end{table}
 
-Using future-forecast error, \textbf{Model V} is preferred by MSE, with \(MSE = 0.106\). MAE and MAPE are slightly smaller for Model III, so the error criteria are not fully unanimous; however, with MSE as the main forecasting criterion, Model V is selected. Therefore, the best model in part (e) matches part (c), but does not match part (d).
+Using future-forecast error, \textbf{Model V} is preferred by MSE, with \(MSE = 0.106\). MPE, MAE, and MAPE are slightly smaller for Model III, so the error criteria are not fully unanimous; however, with MSE as the main forecasting criterion, Model V is selected. Therefore, the best model in part (e) matches part (c), but does not match part (d). I read a little bit more online on why MSE is preferred over MAE: my original thought was because it penalizes the further errors more, but that doesn't really seem to be the main concern; it said something about differentiability, but I couldn't necessarily understand why calculus is involves. Hopefully, I get to learn in Mathematical Statistics. If you have a quick intuitive explanation, would love to know!
 
 \newpage
 
 \section{Problem 2}\label{problem-2}
 
-\begin{problem}[Problem 2 (30 points)]
+\begin{problem}[Problem 2]
 For the New Haven Average Temperature time series, fit the following trend and seasonality models:
 \begin{align*}
 \textbf{Model I:}\quad
@@ -735,7 +735,7 @@ Determine \(s\) using periodogram.
 \NormalTok{NewHaven }\OtherTok{\textless{}{-}} \FunctionTok{ts\_seasonal}\NormalTok{(}\StringTok{\textquotesingle{}data/Climate\_Northeast\_NewHavenCT.xlsx\textquotesingle{}}\NormalTok{)}
 \NormalTok{Y }\OtherTok{\textless{}{-}} \FunctionTok{make\_site\_ts}\NormalTok{(NewHaven)}\SpecialCharTok{$}\NormalTok{ts\_avg}
 
-\CommentTok{\# Periodogram (Lecture 6 style).}
+\CommentTok{\# Periodogram}
 \NormalTok{x }\OtherTok{\textless{}{-}}\NormalTok{ Y }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(Y)}
 \NormalTok{n }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(x)}
 \NormalTok{I }\OtherTok{\textless{}{-}} \FunctionTok{abs}\NormalTok{(}\FunctionTok{fft}\NormalTok{(x))}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/}\NormalTok{ n}
@@ -778,11 +778,11 @@ Determine \(s\) using periodogram.
 
 \begin{center}\includegraphics{Homework2_files/figure-latex/unnamed-chunk-4-1} \end{center}
 
-The periodogram has its dominant peak at frequency \(f = 0.25\), so the estimated seasonal period is
+The periodogram has its dominant peak at frequency \(f = 0.250\), so
 \[
-s = \frac{1}{0.25} = 4.
+s = \mathrm{round}\!\left(\frac{1}{0.250}\right) = 4.
 \]
-Thus, the New Haven average temperature series is modeled with quarterly seasonality (\(s=4\)).
+Therefore, the New Haven average temperature series is modeled with quarterly seasonality (\(s = 4\)).
 
 \newpage
 
@@ -795,7 +795,7 @@ Report the three fitted models.
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# Build regressors and fit the three models.}
-\NormalTok{t    }\OtherTok{\textless{}{-}} \FunctionTok{time}\NormalTok{(Y)}
+\NormalTok{t    }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{time}\NormalTok{(Y))}
 \NormalTok{t2   }\OtherTok{\textless{}{-}}\NormalTok{ t}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{2}\NormalTok{)}
 \NormalTok{cs1  }\OtherTok{\textless{}{-}} \FunctionTok{cos}\NormalTok{(}\DecValTok{2} \SpecialCharTok{*}\NormalTok{ pi }\SpecialCharTok{*}\NormalTok{ t }\SpecialCharTok{/}\NormalTok{ s)}
 \NormalTok{sn1  }\OtherTok{\textless{}{-}} \FunctionTok{sin}\NormalTok{(}\DecValTok{2} \SpecialCharTok{*}\NormalTok{ pi }\SpecialCharTok{*}\NormalTok{ t }\SpecialCharTok{/}\NormalTok{ s)}
@@ -900,9 +900,9 @@ The fitted models are:
 \widehat{\textbf{Model III:}}\quad
 \widehat{\text{AvgTemp}}_t
 &= 5914.417 - 5.960\,t + 0.003\,\frac{t^2}{2!} - 0.017\,\cos\!\left(\frac{2\pi t}{4}\right) - 0.077\,\sin\!\left(\frac{2\pi t}{4}\right)\\
-&\quad + 0.034\,\cos\!\left(\frac{4\pi t}{4}\right) + 0.137\,\sin\!\left(\frac{4\pi t}{4}\right).
+&\quad + 0.034\,\cos\!\left(\frac{4\pi t}{4}\right) + 0.137\,\sin\!\left(\frac{4\pi t}{4}\right),
 \end{align*}
-where \(\text{AvgTemp}_t\) denotes the New Haven average temperature at time \(t\), and \(s=4\) is the seasonal period from part (a).
+where \(\text{AvgTemp}_t\) denotes the New Haven average temperature at time \(t\).
 
 \newpage
 
@@ -967,13 +967,12 @@ From the comparison table:
     topsep=6pt
   ]
 
-\item All three adjusted \(R^2\) values are near zero (slightly negative), so none of these deterministic trend/seasonality models explains much variation in this New Haven quarterly-average series.
-\item Model I has the largest \(R_a^2\) (least negative) among the three.
+\item All three adjusted \(R^2\) values are near zero (slightly negative), so none of these deterministic trend/seasonality models explains much variation in this New Haven quarterly-average series (we can see all of the regular \(R^2\) values are near zero as well, so that's reasonable, I think). Model I has the largest \(R_a^2\) (least negative) among the three.
 \item Model I also has the smallest AIC, AICC, and BIC.
 
   \end{itemize}
 \egroup
 
-Therefore, \textbf{Model I} is selected: adding the quadratic and higher-harmonic terms does not improve fit enough to offset the complexity penalty.
+Therefore, \textbf{Model I} is selected: adding the quadratic and higher-harmonic terms does not improve fit enough to offset the complexity penalty, although, again, it's not like Model I is great either.
 
 \end{document}
