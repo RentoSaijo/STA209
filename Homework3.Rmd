@@ -1,0 +1,501 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Homework 3
+author: |
+  Rento Saijo
+date: 'March 4, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \newenvironment{alphenum}{
+      \begin{enumerate}[
+        label=(\alph*),
+        itemsep=3pt,
+        parsep=0pt,
+        topsep=6pt
+      ]
+    }{
+      \end{enumerate}
+    }
+    \newenvironment{items}{
+      \begin{itemize}[
+        itemsep=3pt,
+        parsep=0pt,
+        topsep=6pt
+      ]
+    }{
+      \end{itemize}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r, include=FALSE}
+# Set chunk options.
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+# Load libraries.
+library(astsa)
+library(readxl)
+
+# Helper for simple latex table.
+table_latex <- function(x, digits = 3, caption = NULL) {
+  y <- x
+  num_cols <- sapply(y, is.numeric)
+  y[num_cols] <- lapply(y[num_cols], round, digits = digits)
+  tab <- knitr::kable(
+    y,
+    format = 'latex',
+    booktabs = TRUE,
+    caption = caption,
+    align = rep('c', ncol(y))
+  )
+  knitr::asis_output(paste0("\\begin{center}\n", tab, "\n\\end{center}"))
+}
+
+# Helper for model fit metrics used in class.
+fit_stats <- function(fit) {
+  n <- length(resid(fit))
+  r <- length(coef(fit))
+  sse <- sum(resid(fit)^2)
+  data.frame(
+    Parameters = r,
+    R2_adj = summary(fit)$adj.r.squared,
+    AIC = AIC(fit) / n,
+    AICc = log(sse / n) + ((n + r) / (n - r - 2)),
+    BIC = AIC(fit, k = log(n)) / n
+  )
+}
+
+# Helper for New Haven data setup.
+read_one_sheet <- function(filename, sheet_num) {
+  dat <- read_excel(
+    filename,
+    sheet = sheet_num,
+    range = 'D7:H77',
+    .name_repair = 'minimal'
+  )
+  dat <- dat[-1, -2]
+  dat <- dat[!is.na(dat$Avg), ]
+  dat$Month <- sheet_num
+  dat
+}
+
+seasonal_df <- function(filename, nums = 1:4) {
+  out <- NULL
+  for (i in nums) {
+    out <- rbind(out, read_one_sheet(filename, i))
+  }
+  out <- out[!is.na(out$Year), ]
+  out$Year <- as.numeric(gsub('[^0-9.]', '', as.character(out$Year)))
+  out <- out[order(out$Year, out$Month), ]
+  out
+}
+```
+
+# Disclosure
+
+GPT-5.3-Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, libraries were loaded and some helper functions were defined including but not limited to `table_latex()` and `seasonal_df()`. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework3.Rmd) for more details.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem 1]
+From \texttt{astsa} package consider the weekly time series \texttt{oil} and \texttt{gas}. The oil series is in dollars per barrel while the gas series is in cents per gallon. In the package \texttt{astsa}, see \texttt{?oil} and \texttt{?gas} for explanation. These data have 545 weekly values from 2000 to mid 2010.
+\end{problem}
+
+```{r}
+# Load data.
+library(astsa)
+data(oil)
+data(gas)
+#?oil
+#?gas
+```
+
+- \texttt{oil}: Crude oil; WTI spot price FOB (in dollars/barrel); weekly from 2000 to mid-2010.
+- \texttt{gas}: New York Harbor conventional regular gasoline weekly spot price FOB (in cents/gallon) from 2000 to mid-2010.
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+Plot the two series on the same graph. Comment on the characteristics.
+\end{problem}
+
+```{r, fig.width=10, fig.height=5, out.width='\\linewidth'}
+# Plot time series.
+tsplot(
+  cbind(`Oil (Dollars/Barrel)` = oil, `Gas (Cents/Gallon)` = gas),
+  spaghetti = TRUE,
+  addLegend = TRUE,
+  location = 'topleft',
+  llwd = 4,
+  col  = c('firebrick', 'navy'),
+  main = 'Weekly Oil and Gas Prices',
+  xlab = 'Time (Weekly Observations)',
+  ylab = 'Price'
+)
+```
+
+The oil data is weekly crude oil price measured in USD per barrel, and the gas data is weekly gasoline price measured in cents per gallon. Both series have 545 observations from 2000 week 1 to 2010 week 25 with \(frequency=52\). The mean behavior is clearly time-dependent for both series, with an overall upward movement that is non-linear because of the strong rise through 2008, sharp decline, and partial recovery for both oil and gas price. There is no clear repeated seasonal pattern by week-of-year in these series, at least as they are presented currently. The variability is substantial, with oil range \(=`r round(diff(range(oil)), 2)`\) dollars/barrel and gas range \(=`r round(diff(range(gas)), 2)`\) cents/gallon, and the variance seems to be be getting gradually larger, so we'd say both series are heteroscedastic. There's a huge crash around 2008-2009 (presumably part of the 2008 financial crisis), so they are both volatile (which already implies that both series are heteroscedastic).
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+In economics, it is often the percentage change in price (returns or growth rate), rather than the absolute price change, that is important. Transform the data as described as \texttt{poil = diff(log(oil))} and \texttt{pgas = diff(log(gas))}. Plot the transformed series in the same plot (\texttt{poil} and \texttt{pgas} on one graph) and comment on the main characteristics of these series.
+\end{problem}
+
+```{r, fig.width=10, fig.height=5, out.width='\\linewidth'}
+# Plot growth rates.
+poil <- diff(log(oil)); pgas <- diff(log(gas))
+tsplot(
+  cbind(poil, pgas),
+  spaghetti = TRUE, addLegend = TRUE,
+  llwd = 4, col  = c('firebrick', 'navy'),
+  main = 'Weekly Oil and Gas Growth Rates (Log Differences)',
+  xlab = 'Time (Weekly Observations)',
+  ylab = 'Weekly Log Growth Rate (Approx. Weekly Percent Change)'
+)
+```
+
+The transformed oil series is \(O_t=\Delta\log(\texttt{oil}_t)\) and the transformed gas series is \(G_t=\Delta\log(\texttt{gas}_t)\), so both are weekly growth rates (approximately weekly percent changes). Each transformed series has 544 observations from 2000 week 2 to 2010 week 25. After transformation, both series are centered near zero (\(\bar O_t=`r round(mean(poil), 5)`\), \(\bar G_t=`r round(mean(pgas), 5)`\)), so no clear deterministic trend remains. There is also no clear repeated seasonal pattern (again, at least with how it's currently presented). The ranges are \(\max(O_t)-\min(O_t)=`r round(max(poil) - min(poil), 3)`\) and \(\max(G_t)-\min(G_t)=`r round(max(pgas) - min(pgas), 3)`\), and the variance is much more stable than in part (a) for both series but since there are volatility highlighting major price-shock periods for both series (around late-2005 for \texttt{pgas} and 2009 for both), so we can also consider both series heteroscedastic.
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+Plot the CCF between \texttt{oil} and \texttt{gas} and compare it with CCF of \texttt{poil} and \texttt{pgas} (i.e., the transformed data) and comment on the relationship.
+\end{problem}
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Plot CCFs.
+op <- par(no.readonly = TRUE)
+on.exit(par(op), add = TRUE)
+par(mfrow = c(2, 1))
+cc_raw <- ccf(as.numeric(oil), as.numeric(gas), lag.max = 20, main = 'CCF: Oil vs. Gas')
+cc_tr  <- ccf(as.numeric(poil), as.numeric(pgas), lag.max = 20, main = 'CCF: Oil Growth Rate vs Gas Growth Rate (Log Differences)')
+
+# Extract key values.
+raw_max_idx <- which.max(abs(cc_raw$acf))
+tr_max_idx  <- which.max(abs(cc_tr$acf))
+raw_max_lag <- as.numeric(cc_raw$lag[raw_max_idx])
+tr_max_lag  <- as.numeric(cc_tr$lag[tr_max_idx])
+```
+
+For the original data, CCF is extremely high at many nearby lags (max absolute CCF \(=`r round(cc_raw$acf[raw_max_idx], 3)`\) at lag `r round(raw_max_lag, 0)`), which is typical for two trending/nonstationary series. For transformed growth rates, the dominant spike is at lag `r round(tr_max_lag, 0)` (CCF \(=`r round(cc_tr$acf[tr_max_idx], 3)`\)). There are also nearby spikes at lag \(-1\) (about 0.182), lag \(-3\) (about 0.097), lag \(+1\) (about 0.100), and lag \(+3\) (about 0.177) albeit much lower spikes.
+
+\newpage
+
+## Problem 1 (d)
+
+\begin{problem}[Problem 1 (d)]
+Based on the CCF relation, which regression model would you propose between transformed gas (\texttt{pgas}) and oil (\texttt{poil}) prices.
+\end{problem}
+
+Using common-sense economics, oil prices should lead gas prices, so for modeling current gas growth \(G_t\) we should prioritize contemporaneous and negative CCF lags (current or past oil), not positive lags (future oil). In the transformed CCF, lag 0 is strongest and lag \(-1\) is the strongest negative nonzero lag, so the proposed model is:
+\[
+G_t = \beta_0 + \beta_1 O_t + \beta_2 O_{t-1} + W_t,
+\]
+which also matches the equation in part (f).
+
+\newpage
+
+## Problem 1 (e)
+
+\begin{problem}[Problem 1 (e)]
+Exhibit scatterplots of the \texttt{poil} and \texttt{pgas} growth series for up to three weeks of lead time of oil prices and comment on the results (is the relationship positive or negative; is it linear or non-linear? Are there any outliers?).
+\end{problem}
+
+```{r, fig.width=12, fig.height=8, out.width='\\linewidth'}
+# Display scatter plots.
+lag2.plot(
+  poil, pgas, 3,
+  xname = 'Weekly Oil Growth Rate (Log Differences)',
+  yname = 'Weekly Gas Growth Rate (Log Differences)'
+)
+```
+
+In the lead-0 panel (\(O_t\) versus \(G_t\)), the scatter plot shows a clear positive and roughly linear relationship, and this is the strongest association among the four panels. In the lead-1 panel (\(O_{t-1}\) versus \(G_t\)), the relationship is still positive but noticeably weaker, with a wider cloud around the trend. In the lead-2 panel (\(O_{t-2}\) versus \(G_t\)), the point cloud is much more diffuse and the linear pattern is weak to nearly absent. In the lead-3 panel (\(O_{t-3}\) versus \(G_t\)), a slight positive pattern reappears, but it is still weak relative to lead 0 and not as clean as lead 1. Across all panels, there are a few outlying points at the extremes (specifically, one that is very noticeable in all panels is the one with the relatively high weekly gas growth rate (log differences) compared to the rest).
+
+\newpage
+
+## Problem 1 (f)
+
+\begin{problem}[Problem 1 (f)]
+Let \(G_t\) and \(O_t\) be the \texttt{pgas} and \texttt{poil} growth rates (transformed series) for gas at time \(t\) which varies from 2000 to 2010, then fit the following regression:
+\[
+G_t = \beta_0 + \beta_1 O_t + \beta_2 O_{t-1} + W_t
+\]
+Report the fitted model. Interpret the regression coefficients \(\beta_1\) and \(\beta_2\). Are the coefficients statistically significant. Is this a good model?
+\end{problem}
+
+```{r}
+# Fit model.
+mess_f <- ts.intersect(
+  G = pgas,
+  O = poil,
+  Olag1 = lag(poil, -1),
+  dframe = TRUE
+)
+fit_f <- lm(G ~ O + Olag1, data = mess_f)
+
+# Summarize model.
+summary(fit_f)
+```
+
+Fitted model:
+\[
+\widehat G_t = `r round(coef(fit_f)[1], 6)` + `r round(coef(fit_f)[2], 6)` O_t + `r round(coef(fit_f)[3], 6)` O_{t-1},
+\]
+
+where \(G_t\) and \(O_t\) are weekly log-growth rates (approximately weekly percent changes) from the 545-point weekly series over 2000 to mid-2010; after differencing and 1-week lag alignment, the fitted sample has \(n=`r nrow(mess_f)`\) points.
+
+- \(\hat{\beta}_1=`r round(coef(fit_f)[2], 3)`\) means a 1\% increase in oil weekly growth is associated with about `r round(100 * coef(fit_f)[2] / 100, 3)`\% increase in gas weekly growth in the same week (using log-change approximation), holding last week's oil growth rate constant.
+- \(\hat{\beta}_2=`r round(coef(fit_f)[3], 3)`\) means a 1\% increase in last week oil growth is associated with about `r round(100 * coef(fit_f)[3] / 100, 3)`\% increase in current gas growth, holding current week's oil growth rate constant.
+
+\(O_t\) is highly significant (\(p < 2\times 10^{-16}\)) and \(O_{t-1}\) is significant (\(p = `r format(summary(fit_f)$coefficients['Olag1', 4], digits = 4)`\)), and the overall model is significant (F-test \(p < 2.2\times 10^{-16}\)). The coefficient of determination is \(R^2 = `r round(summary(fit_f)$r.squared, 3)`\), so the model explains about `r round(100 * summary(fit_f)$r.squared, 1)`\% of the variation in weekly gas growth. The residual standard error is `r round(summary(fit_f)$sigma, 4)` in log-growth units. This means on average, the predicted current gas growth rate is off from the actual current gas growth rate by about `r round(summary(fit_f)$sigma, 4)` in transformed units. All in all, this is a decent model.
+
+\newpage
+
+## Problem 1 (g)
+
+\begin{problem}[Problem 1 (g)]
+There have been a number of studies questioning whether gasoline prices respond more quickly when oil prices are rising than when oil prices are falling (“asymmetry”). We will attempt to explore this question with simple lagged regression model. Let \(G_t\) and \(O_t\) be the \texttt{pgas} and \texttt{poil} growth rates (transformed series) for gas at time \(t\) which varies from 2000 to 2010, then fit the following regression:
+\[
+G_t = \beta_0 + \beta_1 O_t + \beta_2 O_{t-1} + \beta_3 I_t + W_t
+\]
+Where \(I_t\) is an indicator which is 1 if \(O_t \ge 0\) and 0 otherwise, this is the indicator of no growth or positive growth in oil price. Report the fitted model. Interpret the regression coefficients \(\beta_1, \beta_2,\beta_3\). Are the coefficients statistically significant? Is this a good model?
+\end{problem}
+
+```{r}
+# Fit model.
+indi <- ifelse(poil < 0, 0, 1)
+mess_g <- ts.intersect(
+  G = pgas,
+  O = poil,
+  Olag1 = lag(poil, -1),
+  I = indi,
+  dframe = TRUE
+)
+fit_g <- lm(G ~ O + Olag1 + I, data = mess_g)
+
+# Summarize model.
+summary(fit_g)
+```
+
+Fitted asymmetry model:
+\[
+\widehat G_t = `r round(coef(fit_g)[1], 6)` + `r round(coef(fit_g)[2], 6)` O_t + `r round(coef(fit_g)[3], 6)` O_{t-1} + `r round(coef(fit_g)[4], 6)` I_t,
+\]
+where \(I_t=1\) if \(O_t\ge 0\), and \(I_t=0\) otherwise. Here \(G_t\) and \(O_t\) are weekly log-growth rates (approximately weekly percent changes) from the 545-point weekly series over 2000 to mid-2010; after differencing and lag alignment with the indicator, the fitted sample has \(n=`r nrow(mess_g)`\) points.
+
+Partitioning by indicator gives two explicit cases:
+\[
+\text{Case 1 (nonnegative current oil growth): } I_t=1 \iff O_t\ge 0.
+\]
+\[
+\widehat G_t \mid (I_t=1) = `r round(coef(fit_g)[1] + coef(fit_g)[4], 6)` + `r round(coef(fit_g)[2], 6)` O_t + `r round(coef(fit_g)[3], 6)` O_{t-1},
+\]
+\[
+\text{Case 2 (negative current oil growth): } I_t=0 \iff O_t<0.
+\]
+\[
+\widehat G_t \mid (I_t=0) = `r round(coef(fit_g)[1], 6)` + `r round(coef(fit_g)[2], 6)` O_t + `r round(coef(fit_g)[3], 6)` O_{t-1}.
+\]
+
+- \(\hat{\beta}_1=`r round(coef(fit_g)[2], 3)`\) means a 1\% increase in current oil growth is associated with about `r round(coef(fit_g)[2], 3)`\% increase in current gas growth, holding last week's oil growth rate and the indicator term constant.
+- \(\hat{\beta}_2=`r round(coef(fit_g)[3], 3)`\) means a 1\% increase in last week oil growth is associated with about `r round(coef(fit_g)[3], 3)`\% increase in current gas growth, holding current week's oil growth rate and the indicator term constant.
+- \(\hat{\beta}_3=`r round(coef(fit_g)[4], 3)`\) means when current oil growth is nonnegative (\(I_t=1\)), predicted gas growth is higher by about `r round(coef(fit_g)[4], 4)` log-growth units than when current oil growth is negative (\(I_t=0\)), holding current and last week's oil growth rates constant.
+
+\(O_t\) is highly significant (\(p < 2\times 10^{-16}\)), \(O_{t-1}\) is significant (\(p = `r format(summary(fit_g)$coefficients['Olag1', 4], digits = 4)`\)), and \(I_t\) is significant at the 5\% level (\(p = `r format(summary(fit_g)$coefficients['I', 4], digits = 4)`\)). The coefficient of determination is \(R^2 = `r round(summary(fit_g)$r.squared, 3)`\), so the model explains about `r round(100 * summary(fit_g)$r.squared, 1)`\% of the variation in weekly gas growth. The residual standard error is `r round(summary(fit_g)$sigma, 4)` in log-growth units. This means on average, the predicted current gas growth rate is off from the actual current gas growth rate by about `r round(summary(fit_g)$sigma, 4)` in transformed units. All in all, this is, again, a decent model, and since the indicator coefficient is statistically significant and positive, this model provides modest evidence of asymmetry.
+
+\newpage
+
+# Problem 2
+
+\begin{problem}[Problem 2]
+For the average temperature data at New Haven (same as Homework 2), construct a model that accounts for seasonality using indicators as follows: regress average temperature on time (linear trend) and seasonal indicators.
+\[
+\textbf{Model 4: } AvgTemp_t = \beta_0 + \beta_1 t + \sum_{i=1}^{3}\gamma_i D_{i,t} + W_t
+\]
+Report the fitted model. Compare the fit of model 4 with models 1,2 and 3 from Homework 2 using \(R^2_{adj}\), AIC, AICc and BIC.
+\end{problem}
+
+```{r}
+# Build New Haven average temperature quarterly ts (Jan, Apr, Jul, Oct).
+nh <- seasonal_df('data/Climate_Northeast_NewHavenCT.xlsx', 1:4)
+AvgTemp <- ts(nh$Avg, start = c(min(nh$Year), 1), frequency = 4)
+
+# Time + trigonometric regressors (models 1-3 from Homework 2).
+t <- time(AvgTemp)
+s <- 4
+t2 <- t^2 / factorial(2)
+cs1 <- cos(2 * pi * t / s)
+sn1 <- sin(2 * pi * t / s)
+cs2 <- cos(4 * pi * t / s)
+sn2 <- sin(4 * pi * t / s)
+m1 <- lm(AvgTemp ~ t + cs1 + sn1)
+m2 <- lm(AvgTemp ~ t + t2 + cs1 + sn1)
+m3 <- lm(AvgTemp ~ t + t2 + cs1 + sn1 + cs2 + sn2)
+
+# Model 4: linear trend + seasonal indicators.
+n <- length(AvgTemp)
+D1 <- rep(0, n)  # January
+D2 <- rep(0, n)  # April
+D3 <- rep(0, n)  # July
+D4 <- rep(0, n)  # October (baseline)
+D1[seq(1, n, by = 4)] <- 1
+D2[seq(2, n, by = 4)] <- 1
+D3[seq(3, n, by = 4)] <- 1
+D4[seq(4, n, by = 4)] <- 1
+m4 <- lm(AvgTemp ~ t + D1 + D2 + D3)
+summary(m4)
+
+# Comparison table.
+comp2 <- rbind(
+  'Model 1 (HW2)' = fit_stats(m1),
+  'Model 2 (HW2)' = fit_stats(m2),
+  'Model 3 (HW2)' = fit_stats(m3),
+  'Model 4 (Indicators)' = fit_stats(m4)
+)
+table_latex(data.frame(Model = rownames(comp2), comp2, row.names = NULL), digits = 4)
+```
+
+Model 4 fitted equation:
+\[
+\widehat{AvgTemp}_t =
+`r round(coef(m4)[1], 4)` + `r format(coef(m4)[2], scientific = FALSE, digits = 6)`\,t
+`r ifelse(coef(m4)[3] >= 0, '+', '-')` `r round(abs(coef(m4)[3]), 4)` D_{1,t}
+`r ifelse(coef(m4)[4] >= 0, '+', '-')` `r round(abs(coef(m4)[4]), 4)` D_{2,t}
+`r ifelse(coef(m4)[5] >= 0, '+', '-')` `r round(abs(coef(m4)[5]), 4)` D_{3,t}.
+\]
+Furtheremore, the fitted model can be written as four seasonal equations:
+\[
+\text{January (}D_{1,t}=1,\;D_{2,t}=D_{3,t}=0\text{):}\quad
+\widehat{AvgTemp}_t = `r round(coef(m4)[1] + coef(m4)[3], 4)` + `r format(coef(m4)[2], scientific = FALSE, digits = 6)`\,t.
+\]
+\[
+\text{April (}D_{2,t}=1,\;D_{1,t}=D_{3,t}=0\text{):}\quad
+\widehat{AvgTemp}_t = `r round(coef(m4)[1] + coef(m4)[4], 4)` + `r format(coef(m4)[2], scientific = FALSE, digits = 6)`\,t.
+\]
+\[
+\text{July (}D_{3,t}=1,\;D_{1,t}=D_{2,t}=0\text{):}\quad
+\widehat{AvgTemp}_t = `r round(coef(m4)[1] + coef(m4)[5], 4)` + `r format(coef(m4)[2], scientific = FALSE, digits = 6)`\,t.
+\]
+\[
+\text{October (}D_{1,t}=D_{2,t}=D_{3,t}=0\text{):}\quad
+\widehat{AvgTemp}_t = `r round(coef(m4)[1], 4)` + `r format(coef(m4)[2], scientific = FALSE, digits = 6)`\,t.
+\]
+Here \(AvgTemp_t\) is New Haven average temperature in degrees Celsius. The time variable \(t\) is a quarterly time index in years, with frequency 4 (Jan, Apr, Jul, Oct), from `r min(time(AvgTemp))` to `r max(time(AvgTemp))` (1950 Q1 through 2014 Q4, although we know this is inconsistent from the raw data), with \(n=`r length(AvgTemp)`\). Model 4 has much larger \(R^2_{adj}\) (`r round(summary(m4)$adj.r.squared, 4)`) than Models 1-3 (which are all near 0 or negative), and Model 4 also has the smallest AIC, AICc, and BIC in the comparison table. Therefore, among Models 1-4, the indicator-seasonality Model 4 provides the best fit for this New Haven average temperature series.

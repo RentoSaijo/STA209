@@ -577,7 +577,7 @@ Report the three fitted models.
 
 ```{r}
 # Build regressors and fit the three models.
-t    <- as.numeric(time(Y))
+t    <- time(Y)
 t2   <- t^2 / factorial(2)
 cs1  <- cos(2 * pi * t / s)
 sn1  <- sin(2 * pi * t / s)

@@ -795,7 +795,7 @@ Report the three fitted models.
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# Build regressors and fit the three models.}
-\NormalTok{t    }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{time}\NormalTok{(Y))}
+\NormalTok{t    }\OtherTok{\textless{}{-}} \FunctionTok{time}\NormalTok{(Y)}
 \NormalTok{t2   }\OtherTok{\textless{}{-}}\NormalTok{ t}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{2}\NormalTok{)}
 \NormalTok{cs1  }\OtherTok{\textless{}{-}} \FunctionTok{cos}\NormalTok{(}\DecValTok{2} \SpecialCharTok{*}\NormalTok{ pi }\SpecialCharTok{*}\NormalTok{ t }\SpecialCharTok{/}\NormalTok{ s)}
 \NormalTok{sn1  }\OtherTok{\textless{}{-}} \FunctionTok{sin}\NormalTok{(}\DecValTok{2} \SpecialCharTok{*}\NormalTok{ pi }\SpecialCharTok{*}\NormalTok{ t }\SpecialCharTok{/}\NormalTok{ s)}
