@@ -215,14 +215,14 @@
 \makeatother
 \subtitle{Homework 4}
 \author{Rento Saijo}
-\date{March 30, 2026}
+\date{April 1, 2026}
 
 \begin{document}
 \maketitle
 
 \section{Disclosure}\label{disclosure}
 
-GPT-5.4 Codex was used to create the \texttt{YAML} portion and some \texttt{LaTeX} code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document. See the original \texttt{RMD} file \href{https://github.com/RentoSaijo/STA209/blob/main/Homework4.Rmd}{here} for more details. Please ignore Problem 2 for this submission.
+GPT-5.4 Codex was used to create the \texttt{YAML} portion and some \texttt{LaTeX} code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document. See the original \texttt{RMD} file \href{https://github.com/RentoSaijo/STA209/blob/main/Homework4.Rmd}{here} for more details.
 
 \newpage
 
@@ -451,9 +451,13 @@ For your data analysis project, do the following.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# Load the curated data{-}project file.}
+\CommentTok{\# Load the curated data project files.}
 \NormalTok{blackwood\_gbgs }\OtherTok{\textless{}{-}}\NormalTok{ utils}\SpecialCharTok{::}\FunctionTok{read.csv}\NormalTok{(}
   \StringTok{\textquotesingle{}data/blackwood\_gbgs.csv\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{stringsAsFactors =} \ConstantTok{FALSE}
+\NormalTok{)}
+\NormalTok{shesterkin\_gbgs }\OtherTok{\textless{}{-}}\NormalTok{ utils}\SpecialCharTok{::}\FunctionTok{read.csv}\NormalTok{(}
+  \StringTok{\textquotesingle{}data/shesterkin\_gbgs.csv\textquotesingle{}}\NormalTok{,}
   \AttributeTok{stringsAsFactors =} \ConstantTok{FALSE}
 \NormalTok{)}
 \end{Highlighting}
@@ -464,26 +468,24 @@ For your data analysis project, do the following.
 \subsection{Problem 2 (a)}\label{problem-2-a}
 
 \begin{problem}[Problem 2 (a)]
-Introduce your data project problem in detail explaining research goals clearly. Share your data in detail with all variables, source, and how this data was selected (that us why not another dataset).
+Introduce your data project problem in detail explaining research goals clearly. Share your data in detail with all variables, source, and how this data was selected (that is, why not another dataset).
 \end{problem}
 
-My data-analysis project asks whether a goalie's goals saved above expected, or GSAx, is really as team-independent as it is often treated in hockey analysis. The usual appeal of GSAx is that it seems fairer than raw save percentage or goals against because it does not treat all shots as equal; instead, it rewards a goalie for stopping dangerous chances and penalizes him more for allowing them, so in principle it already adjusts for the playing conditions his team gives him. I want to challenge that interpretation rather than simply accept it. My question is whether a goalie's game-by-game GSAx still moves in meaningful ways with team circumstances such as how much expected offense his team creates, how much expected danger it allows, and how much volume he faces. At the same time, I do not want to overstate the claim, because goalie performance can also vary for reasons that are not fully captured by team context, including natural progression or regression over a career, injury or recovery, confidence and mental state, fatigue, or back-to-back scheduling. So the project is not asking whether team context is the only driver of GSAx; it is asking whether team context still appears related to a metric that is usually advertised as already context-adjusted.
+My data project asks whether a goalie's goals saved above expected, or GSAx, is really as team-independent as it is often treated in hockey analysis. The usual appeal of GSAx is that it seems fairer than raw save percentage or goals against because it does not treat all shots as equal; instead, it rewards a goalie for stopping dangerous chances and penalizes him more for allowing easier ones, so in principle it already adjusts for the playing conditions his team gives him. I want to challenge that interpretation rather than simply accept it. More specifically, I want to compare a goalie whose team environment changed substantially with a goalie whose team environment stayed much more stable. Mackenzie Blackwood is useful because he has now played for New Jersey, San Jose, and Colorado, so his surrounding roster and team process have changed a great deal. Igor Shesterkin is useful as the contrast because he has stayed with the New York Rangers, so any changes in his series come from year-to-year roster evolution rather than a franchise change. At the same time, I do not want to overstate the claim, because goalie performance can also vary for reasons that are not fully captured by team context, including natural progression or regression over a career, injury or recovery, confidence and mental state, fatigue, or back-to-back scheduling. So the project is not asking whether team context is the only driver of GSAx; it is asking whether the behavior of GSAx looks different when one goalie experiences major team changes and another does not.
 
-I will study Mackenzie Blackwood's NHL regular-season career game by game, using \(t\) as career game number so that \(t = 1, 2, \ldots, 287\), where \(t=1\) corresponds to 2018-12-18 and \(t=287\) corresponds to 2026-03-14. This version of the project is restricted to even strength, so every hockey variable in the final file is built from the GBG \texttt{\_ev} fields rather than all-situations totals. I chose this dataset because it keeps the subject fixed to one goalie, which keeps the project simple, but it still contains natural changes in team environment through Blackwood's moves from the New Jersey Devils to the San Jose Sharks and then to the Colorado Avalanche. In the final curated file, he has 152 games with New Jersey, 63 games with San Jose, and 72 games with Colorado, so the same goalie can be observed across multiple team contexts rather than comparing many different goalies at once.
+I study both goalies game by game at even strength and keep only regular-season games, that is, games with \texttt{gameTypeId\ =\ 2}, equivalently \texttt{gameId} values whose middle two digits are \texttt{02}. After filtering to complete even-strength regular-season records, Blackwood contributes the smaller complete sample, so to keep the comparison balanced I restrict both goalies to the first 285 complete even-strength regular-season career games. For Blackwood, the analysis sample runs from 2018-12-18 through 2026-03-28 and includes 152 games with New Jersey, 63 games with San Jose, and 70 games with Colorado. For Shesterkin, the matched sample runs from 2020-01-07 through 2025-11-04 and all 285 games are with the Rangers. Within each goalie's file, the time index is career game number, so for Blackwood and Shesterkin separately I set \(t = 1, 2, \ldots, 285\).
 
-The raw NHL event and report data in my broader pipeline do start with my \texttt{nhlscraper} package through functions such as \texttt{nhlscraper::games()}, \texttt{nhlscraper::goalie\_game\_report()}, \texttt{nhlscraper::gc\_pbps()}, and \texttt{nhlscraper::shift\_charts()}, but the expected-goals layer used here is not merely a direct \texttt{nhlscraper} output. In \texttt{rentosrink}, I build my own xG pipeline on top of those inputs. The current model and deployment logic are described in the live Streamlit model page at \href{https://rentosrink.streamlit.app/}{\texttt{rentosrink.streamlit.app}} and in the source file \href{https://github.com/RentoSaijo/rentosrink/blob/main/views/expected_goal.py}{\texttt{rentosrink/views/expected\_goal.py}}. The advanced game-by-game files used here are described in the GBG codebook at \href{https://github.com/RentoSaijo/rentosrink/blob/main/scripts/gbgs/codebook.md}{\texttt{rentosrink/scripts/gbgs/codebook.md}}, which states that advanced GBGs are built from the SBS/xG pipeline rather than from raw reports alone.
+The raw NHL event and report data in my broader pipeline do start with my \texttt{nhlscraper} package through functions such as \texttt{nhlscraper::games()}, \texttt{nhlscraper::goalie\_game\_report()}, \texttt{nhlscraper::gc\_pbps()}, and \texttt{nhlscraper::shift\_charts()}, but the expected-goals layer used here is not merely a direct \texttt{nhlscraper} output. In \texttt{rentosrink}, I build my own xG pipeline on top of those inputs. The current model and deployment logic are described in the live Streamlit model page at \href{https://rentosrink.streamlit.app/expected_goal}{\texttt{rentosrink.streamlit.app}} and in the source file \href{https://github.com/RentoSaijo/rentosrink/blob/main/views/expected_goal.py}{\texttt{rentosrink/views/expected\_goal.py}}. The advanced game-by-game files used here are described in the GBG codebook at \href{https://github.com/RentoSaijo/rentosrink/blob/main/scripts/gbgs/codebook.md}{\texttt{rentosrink/scripts/gbgs/codebook.md}}, which states that advanced GBGs are built from the SBS/xG pipeline rather than from raw reports alone.
 
-Because this project is restricted to even-strength data, the relevant 2025--26 unseen-future xG validation is the two even-strength partitions rather than an all-situations aggregate. For Standard 5v5, the deployed \texttt{sd1} XGBoost model achieved log loss \(= 0.1926\), Brier score \(= 0.0522\), ROC AUC \(= 0.8038\), and calibration ratio \(= 1.0477\). For Non-Standard Even Strength, the deployed \texttt{ev2} LightGBM model achieved log loss \(= 0.2986\), Brier score \(= 0.0853\), ROC AUC \(= 0.7365\), and calibration ratio \(= 1.1595\). Those numbers matter here because my project depends on the quality of the xG estimates that feed the even-strength variables \texttt{xga\_ev}, \texttt{xgf\_ev}, \texttt{gsax\_ev}, and \texttt{team\_xg\_pct\_ev}; if the xG model were poor, then the entire goalie-context question would be much weaker. At the same time, even a strong public xG model is still incomplete. In particular, the public NHL event data do not provide full pass-tracking information, so my public xG models still cannot fully account for detailed pre-shot passing structure, deception, or some off-puck context. That means if team-context variables still show a relationship with GSAx, the project may reveal not only genuine team influence on goalie results, but also what the current public xG framework is still missing.
+Because this project is restricted to even-strength data, the relevant 2025--26 unseen-future xG validation is the two even-strength partitions rather than an all-situations aggregate. For Standard 5v5, the deployed \texttt{sd1} XGBoost model achieved log loss \(= 0.1926\), Brier score \(= 0.0522\), ROC AUC \(= 0.8038\), and calibration ratio \(= 1.0477\). For Non-Standard Even Strength, the deployed \texttt{ev2} LightGBM model achieved log loss \(= 0.2986\), Brier score \(= 0.0853\), ROC AUC \(= 0.7365\), and calibration ratio \(= 1.1595\). Those numbers matter here because my project depends on the quality of the xG estimates that feed the even-strength variables \texttt{xga\_ev}, \texttt{xgf\_ev}, \texttt{gsax\_ev}, and \texttt{team\_xg\_pct\_ev}; if the xG model were poor, then the entire goalie-context question would be much weaker. At the same time, even a strong public xG model is still incomplete. In particular, the public NHL event data do not provide full pass-tracking information, so my public xG models still cannot fully account for detailed pre-shot passing structure, deception, or some off-puck context. That means if GSAx still behaves differently across the two goalie situations, the project may reveal not only genuine team influence on goalie results, but also what the current public xG framework is still missing.
 
-The final project file was created by filtering the \texttt{rentosrink} goalie and team game-by-game tables in \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/basic}{\texttt{rentosrink/data/gbgs/basic}} and \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/advanced}{\texttt{rentosrink/data/gbgs/advanced}} to Blackwood's player id \texttt{8478406}, merging the goalie basic, goalie advanced, and team advanced files by game and team, joining team names from \href{https://github.com/RentoSaijo/rentosrink/blob/main/data/teams.csv}{\texttt{rentosrink/data/teams.csv}}, and keeping the even-strength columns only. The final analysis file \href{https://github.com/RentoSaijo/STA209/blob/main/data/blackwood_gbgs.csv}{\texttt{STA209/data/blackwood\_gbgs.csv}} therefore contains 287 complete observations.
+The final project files were created by filtering the \texttt{rentosrink} goalie and team game-by-game tables in \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/basic}{\texttt{rentosrink/data/gbgs/basic}} and \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/advanced}{\texttt{rentosrink/data/gbgs/advanced}} to Blackwood's player id \texttt{8478406} and Shesterkin's player id \texttt{8478048}, keeping only regular-season games, merging the goalie basic, goalie advanced, and team advanced files by game and team, joining team names from \href{https://github.com/RentoSaijo/rentosrink/blob/main/data/teams.csv}{\texttt{rentosrink/data/teams.csv}}, and then keeping the even-strength columns only. The final analysis files are \href{https://github.com/RentoSaijo/STA209/blob/main/data/blackwood_gbgs.csv}{\texttt{STA209/data/blackwood\_gbgs.csv}} and \href{https://github.com/RentoSaijo/STA209/blob/main/data/shesterkin_gbgs.csv}{\texttt{STA209/data/shesterkin\_gbgs.csv}}, and each contains 285 complete observations after matching the sample length.
 
-The identifier and indexing variables are \texttt{game\_number}, which is the time index \(t\); \texttt{game\_date}, the calendar date of the game; \texttt{season}, the NHL season id; \texttt{team\_id}, \texttt{team\_abbr}, and \texttt{team\_name}, which identify Blackwood's team in that game; \texttt{game\_id} and \texttt{player\_id}; and \texttt{team\_change}, an indicator for the first game after a franchise change. The hockey performance variables are \texttt{shots\_against\_ev}, \texttt{goals\_against\_ev}, \texttt{xga\_ev}, \texttt{xgf\_ev}, \texttt{sv\_pct\_ev}, \texttt{gsax\_ev}, \texttt{cumulative\_gsax\_ev}, and \texttt{cumulative\_sv\_pct\_ev}. The main derived team-context variable is
+The identifier and indexing variables are \texttt{game\_number}, which is the time index \(t\); \texttt{game\_date}, the calendar date of the game; \texttt{season}, the NHL season id; \texttt{team\_id}, \texttt{team\_abbr}, and \texttt{team\_name}, which identify the goalie's team in that game; \texttt{game\_id} and \texttt{player\_id}; and \texttt{team\_change}, an indicator for the first game after a franchise change. The hockey performance variables are \texttt{shots\_against\_ev}, \texttt{goals\_against\_ev}, \texttt{xga\_ev}, \texttt{xgf\_ev}, \texttt{sv\_pct\_ev}, \texttt{gsax\_ev}, \texttt{cumulative\_gsax\_ev}, and \texttt{cumulative\_sv\_pct\_ev}. The main derived team-context variable is
 \[
-\texttt{team\_xg\_pct\_ev} = 100 \times \frac{\texttt{xgf\_ev}}{\texttt{xgf\_ev} + \texttt{xga\_ev}},
+\texttt{team\_xg\_pct\_ev} = 100 \times \frac{\texttt{xgf\_ev}}{\texttt{xgf\_ev} + \texttt{xga\_team\_ev}},
 \]
-which is the team even-strength expected-goal share percentage.
-
-For the actual analysis, I use \texttt{cumulative\_gsax\_ev} as the response series and consider \texttt{gsax\_ev}, \texttt{sv\_pct\_ev}, and \texttt{team\_xg\_pct\_ev} as the main explanatory series. I chose this dataset instead of a larger multi-goalie panel because the assignment is easier to execute well with one clearly defined time series, and Blackwood is a good case because he has enough games, multiple team contexts, and an immediately interpretable hockey question.
+which is the team even-strength expected-goal share percentage from the team GBG file. For the actual analysis in part (c), I use \texttt{cumulative\_gsax\_ev} as the main response series and also model \texttt{gsax\_ev}, \texttt{sv\_pct\_ev}, and \texttt{team\_xg\_pct\_ev} separately for each goalie, since the assignment asks for modeling at least three time series and these four series together describe both goalie results and team environment.
 
 \newpage
 
@@ -500,12 +502,12 @@ Using Google Scholar and OneSearch, I focused on journal articles that support t
 \item
   The first article is Lignell, Rago, and Mohr (2020), ``Analysis of goal scoring opportunities in elite male ice hockey in relation to tactical and contextual variables,'' \textit{International Journal of Performance Analysis in Sport}, 20(6), 1003--1017, \href{https://doi.org/10.1080/24748668.2020.1823161}{https://doi.org/10.1080/24748668.2020.1823161}. This article is directly relevant because it is hockey-specific and shows that the probability of scoring is affected by tactical and contextual variables, not just by a shooter-goalie duel in isolation, which supports the idea that a goalie's environment may matter when we interpret a metric like GSAx.
 \item
-  The second article is Mead, O'Hare, and McMenemy (2023), ``Expected goals in football: Improving model performance and demonstrating value,'' \textit{PLOS ONE}, 18(4), e0282295, \href{https://doi.org/10.1371/journal.pone.0282295}{https://doi.org/10.1371/journal.pone.0282295}. Even though it is soccer rather than hockey, it is still very relevant because it shows that expected-goals style process measures outperform traditional shot and goal counts for prediction and evaluation, which supports using xG-based team-context variables instead of relying only on goals against or wins.
+  The second article is Mead, O'Hare, and McMenemy (2023), ``Expected goals in football: Improving model performance and demonstrating value,'' \textit{PLOS ONE}, 18(4), e0282295, \href{https://doi.org/10.1371/journal.pone.0282295}{https://doi.org/10.1371/journal.pone.0282295}. Even though it is soccer rather than hockey, it is still very relevant because it shows that expected-goals style process measures outperform traditional shot and goal counts for prediction and evaluation, which supports using xG-based context variables instead of relying only on goals against or wins.
 \item
   The third article is De-la-Cruz-Torres, Navarro-Castro, and Ruiz-de-Alarcón-Quintero (2025), ``An Expected Goals On Target (xGOT) Model: Accounting for Goalkeeper Performance in Football,'' \textit{Big Data and Cognitive Computing}, 9(3), 64, \href{https://doi.org/10.3390/bdcc9030064}{https://doi.org/10.3390/bdcc9030064}. This article matters because it argues that traditional shot models often overlook the goalkeeper's contribution and proposes an explicitly goalkeeper-aware post-shot model, which is conceptually close to my question because GSAx is also supposed to isolate goalie performance from chance quality.
 \end{itemize}
 
-Taken together, these three articles support the importance of my project from three directions: hockey chances are shaped by context, xG-type process metrics are valuable for performance evaluation, and goalkeeper evaluation is strongest when the model takes both chance quality and the keeper's contribution seriously rather than assuming independence by default.
+All in all, these three articles support the importance of my project from three directions: hockey chances are shaped by context, xG-type process metrics are valuable for performance evaluation, and goalkeeper evaluation is strongest when the model takes both chance quality and the keeper's contribution seriously rather than assuming independence by default. They also justify the comparison between Blackwood and Shesterkin, because that design lets me look at one goalie under major team changes and another under relative organizational continuity without leaving the broader question of context-adjusted goalie evaluation.
 
 \newpage
 
@@ -515,113 +517,19 @@ Taken together, these three articles support the importance of my project from t
 For each variable, show time series plots (you can do multiple plots on the same slide) and comment on its main features (trend, seasonality, range, volatile, heteroscedasticity). Model the trend and seasonality of all variables (at least three) using techniques learned in the class and report the best model justifying their performance using all methods learned in class. Make a summary table comparing adjusted \(R^2\), F-test, likelihood-based criteria, and forecast evaluation criteria. For seasonality, make a periodogram of your response variable (one time series) and see if there is any seasonality in the data.
 \end{problem}
 
-For this part, I focus on \texttt{cumulative\_gsax\_ev}, which is Blackwood's cumulative even-strength goals saved above expected. The other three series I use alongside it are \texttt{gsax\_ev}, the game-by-game even-strength GSAx series, \texttt{sv\_pct\_ev}, the game-by-game even-strength save-percentage series, and \texttt{team\_xg\_pct\_ev}, the team even-strength expected-goal share percentage. The time variable is the career game index \(t\), measured in games, with one observation per game from \(t=1\) on 2018-12-18 through \(t=287\) on 2026-03-14.
+For this part, I treat each series as a univariate time series indexed by career game number. For both Blackwood and Shesterkin, the time variable is \(t = 1, 2, \ldots, 285\), where each value of \(t\) corresponds to one complete even-strength game in that goalie's matched sample. The four series are \texttt{cumulative\_gsax\_ev}, \texttt{gsax\_ev}, \texttt{sv\_pct\_ev}, and \texttt{team\_xg\_pct\_ev}. For forecast evaluation, I use Blackwood's move to Colorado as the split point, so the training sample is \(t = 1, \ldots, 215\) and the holdout sample is \(t = 216, \ldots, 285\). For Blackwood, that means training through 2024-12-07 and forecasting from 2024-12-14, his first Colorado game. For Shesterkin, I keep the same career-game split \(t = 216\) so that the holdout period has the same length and the comparison stays aligned by career-game count rather than calendar date.
 
-For forecast evaluation, I use Blackwood's move to Colorado as the forecasting cutoff, so the training sample is the pre-Colorado period \(t=1,\ldots,215\) and the holdout sample is the Colorado period \(t=216,\ldots,287\), beginning on 2024-12-14. This is a meaningful cutoff because it tests whether a model fit on Blackwood's pre-Colorado career carries into a new team environment.
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\# Setup for the cumulative GSAx analysis.}
-\NormalTok{split\_game }\OtherTok{\textless{}{-}} \FunctionTok{min}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{game\_number[blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_abbr }\SpecialCharTok{==} \StringTok{\textquotesingle{}COL\textquotesingle{}}\NormalTok{])}
-
-\NormalTok{periodogram\_info }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(y) \{}
-\NormalTok{  x }\OtherTok{\textless{}{-}}\NormalTok{ y }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(y)}
-\NormalTok{  n }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(x)}
-\NormalTok{  I }\OtherTok{\textless{}{-}} \FunctionTok{abs}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{fft}\NormalTok{(x))}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/}\NormalTok{ n}
-\NormalTok{  half }\OtherTok{\textless{}{-}} \FunctionTok{floor}\NormalTok{((n }\SpecialCharTok{/} \DecValTok{2}\NormalTok{) }\SpecialCharTok{{-}} \DecValTok{1}\NormalTok{)}
-\NormalTok{  f }\OtherTok{\textless{}{-}} \DecValTok{0}\SpecialCharTok{:}\NormalTok{half }\SpecialCharTok{/}\NormalTok{ n}
-\NormalTok{  P }\OtherTok{\textless{}{-}}\NormalTok{ (}\DecValTok{4} \SpecialCharTok{/}\NormalTok{ n) }\SpecialCharTok{*}\NormalTok{ I[}\DecValTok{1}\SpecialCharTok{:}\NormalTok{(half }\SpecialCharTok{+} \DecValTok{1}\NormalTok{)]}
-\NormalTok{  dom\_idx }\OtherTok{\textless{}{-}} \FunctionTok{which.max}\NormalTok{(P[}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{]) }\SpecialCharTok{+} \DecValTok{1}
-  \FunctionTok{list}\NormalTok{(}\AttributeTok{f =}\NormalTok{ f, }\AttributeTok{P =}\NormalTok{ P, }\AttributeTok{freq =}\NormalTok{ f[dom\_idx], }\AttributeTok{period =} \DecValTok{1} \SpecialCharTok{/}\NormalTok{ f[dom\_idx])}
-\NormalTok{\}}
-
-\NormalTok{acf\_table }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, }\AttributeTok{lag.max =} \DecValTok{8}\NormalTok{) \{}
-\NormalTok{  ac }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{acf}\NormalTok{(}\FunctionTok{as.numeric}\NormalTok{(x), }\AttributeTok{lag.max =}\NormalTok{ lag.max, }\AttributeTok{plot =} \ConstantTok{FALSE}\NormalTok{)}
-  \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{lag =} \FunctionTok{as.numeric}\NormalTok{(ac}\SpecialCharTok{$}\NormalTok{lag)[}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{], }\AttributeTok{acf =} \FunctionTok{as.numeric}\NormalTok{(ac}\SpecialCharTok{$}\NormalTok{acf)[}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{])}
-\NormalTok{\}}
-
-\NormalTok{ccf\_table }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, y, }\AttributeTok{lag.max =} \DecValTok{8}\NormalTok{) \{}
-\NormalTok{  cc }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ccf}\NormalTok{(}\FunctionTok{as.numeric}\NormalTok{(x), }\FunctionTok{as.numeric}\NormalTok{(y), }\AttributeTok{lag.max =}\NormalTok{ lag.max, }\AttributeTok{plot =} \ConstantTok{FALSE}\NormalTok{)}
-  \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{lag =} \FunctionTok{as.numeric}\NormalTok{(cc}\SpecialCharTok{$}\NormalTok{lag), }\AttributeTok{acf =} \FunctionTok{as.numeric}\NormalTok{(cc}\SpecialCharTok{$}\NormalTok{acf))}
-\NormalTok{\}}
-
-\NormalTok{neg\_lag\_peak }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(tbl) \{}
-\NormalTok{  tbl }\OtherTok{\textless{}{-}}\NormalTok{ tbl[tbl}\SpecialCharTok{$}\NormalTok{lag }\SpecialCharTok{\textless{}} \DecValTok{0}\NormalTok{, , drop }\OtherTok{=} \ConstantTok{FALSE}\NormalTok{]}
-\NormalTok{  tbl[}\FunctionTok{which.max}\NormalTok{(}\FunctionTok{abs}\NormalTok{(tbl}\SpecialCharTok{$}\NormalTok{acf)), ]}
-\NormalTok{\}}
-
-\NormalTok{fit\_table\_proj }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(fit) \{}
-\NormalTok{  n }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{residuals}\NormalTok{(fit))}
-\NormalTok{  r }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{coef}\NormalTok{(fit))}
-\NormalTok{  sse }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{residuals}\NormalTok{(fit)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
-\NormalTok{  f\_stats }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(fit)}\SpecialCharTok{$}\NormalTok{fstatistic}
-\NormalTok{  f\_p }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{pf}\NormalTok{(f\_stats[}\DecValTok{1}\NormalTok{], f\_stats[}\DecValTok{2}\NormalTok{], f\_stats[}\DecValTok{3}\NormalTok{], }\AttributeTok{lower.tail =} \ConstantTok{FALSE}\NormalTok{)}
-  \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{Parameters =}\NormalTok{ r,}
-    \AttributeTok{R2a =} \FunctionTok{summary}\NormalTok{(fit)}\SpecialCharTok{$}\NormalTok{adj.r.squared,}
-    \AttributeTok{Fp =}\NormalTok{ f\_p,}
-    \AttributeTok{AIC =}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{AIC}\NormalTok{(fit) }\SpecialCharTok{/}\NormalTok{ n,}
-    \AttributeTok{AICC =} \FunctionTok{log}\NormalTok{(sse }\SpecialCharTok{/}\NormalTok{ n) }\SpecialCharTok{+}\NormalTok{ ((n }\SpecialCharTok{+}\NormalTok{ r) }\SpecialCharTok{/}\NormalTok{ (n }\SpecialCharTok{{-}}\NormalTok{ r }\SpecialCharTok{{-}} \DecValTok{2}\NormalTok{)),}
-    \AttributeTok{BIC =}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{AIC}\NormalTok{(fit, }\AttributeTok{k =} \FunctionTok{log}\NormalTok{(n)) }\SpecialCharTok{/}\NormalTok{ n,}
-    \AttributeTok{row.names =} \ConstantTok{NULL}
-\NormalTok{  )}
-\NormalTok{\}}
-
-\NormalTok{fcst\_metrics\_proj }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(data, form) \{}
-\NormalTok{  train\_data }\OtherTok{\textless{}{-}}\NormalTok{ data[data}\SpecialCharTok{$}\NormalTok{t }\SpecialCharTok{\textless{}}\NormalTok{ split\_game, , drop }\OtherTok{=} \ConstantTok{FALSE}\NormalTok{]}
-\NormalTok{  test\_data }\OtherTok{\textless{}{-}}\NormalTok{ data[data}\SpecialCharTok{$}\NormalTok{t }\SpecialCharTok{\textgreater{}=}\NormalTok{ split\_game, , drop }\OtherTok{=} \ConstantTok{FALSE}\NormalTok{]}
-\NormalTok{  fit\_train }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{lm}\NormalTok{(form, }\AttributeTok{data =}\NormalTok{ train\_data)}
-\NormalTok{  y\_hat }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{predict}\NormalTok{(fit\_train, }\AttributeTok{newdata =}\NormalTok{ test\_data)}
-\NormalTok{  e }\OtherTok{\textless{}{-}}\NormalTok{ test\_data}\SpecialCharTok{$}\NormalTok{H }\SpecialCharTok{{-}}\NormalTok{ y\_hat}
-  \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{ME =} \FunctionTok{mean}\NormalTok{(e),}
-    \AttributeTok{MPE =} \DecValTok{100} \SpecialCharTok{*} \FunctionTok{mean}\NormalTok{(e }\SpecialCharTok{/}\NormalTok{ test\_data}\SpecialCharTok{$}\NormalTok{H),}
-    \AttributeTok{MSE =} \FunctionTok{mean}\NormalTok{(e}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{),}
-    \AttributeTok{MAE =} \FunctionTok{mean}\NormalTok{(}\FunctionTok{abs}\NormalTok{(e)),}
-    \AttributeTok{MAPE =} \DecValTok{100} \SpecialCharTok{*} \FunctionTok{mean}\NormalTok{(}\FunctionTok{abs}\NormalTok{(e }\SpecialCharTok{/}\NormalTok{ test\_data}\SpecialCharTok{$}\NormalTok{H)),}
-    \AttributeTok{row.names =} \ConstantTok{NULL}
-\NormalTok{  )}
-\NormalTok{\}}
-
-\NormalTok{H }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{G }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{S }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{X }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{t }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(H), }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{t2 }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{((}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(H))}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{2}\NormalTok{), }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-\NormalTok{t3 }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{((}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(H))}\SpecialCharTok{\^{}}\DecValTok{3} \SpecialCharTok{/} \FunctionTok{factorial}\NormalTok{(}\DecValTok{3}\NormalTok{), }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{)}
-
-\NormalTok{gsax\_data }\OtherTok{\textless{}{-}}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{ts.intersect}\NormalTok{(}
-  \AttributeTok{H =}\NormalTok{ H,}
-  \AttributeTok{t =}\NormalTok{ t,}
-  \AttributeTok{t2 =}\NormalTok{ t2,}
-  \AttributeTok{t3 =}\NormalTok{ t3,}
-  \AttributeTok{GL3 =}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{lag}\NormalTok{(G, }\SpecialCharTok{{-}}\DecValTok{3}\NormalTok{),}
-  \AttributeTok{SL3 =}\NormalTok{ stats}\SpecialCharTok{::}\FunctionTok{lag}\NormalTok{(S, }\SpecialCharTok{{-}}\DecValTok{3}\NormalTok{),}
-  \AttributeTok{dframe =} \ConstantTok{TRUE}
-\NormalTok{)}
-
-\NormalTok{gsax\_period }\OtherTok{\textless{}{-}} \FunctionTok{periodogram\_info}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev)}
-\NormalTok{h\_acf\_tbl }\OtherTok{\textless{}{-}} \FunctionTok{acf\_table}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev)}
-\NormalTok{g\_ccf\_tbl }\OtherTok{\textless{}{-}} \FunctionTok{ccf\_table}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev, blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev)}
-\NormalTok{s\_ccf\_tbl }\OtherTok{\textless{}{-}} \FunctionTok{ccf\_table}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev, blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev)}
-\NormalTok{x\_ccf\_tbl }\OtherTok{\textless{}{-}} \FunctionTok{ccf\_table}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev, blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev)}
-
-\NormalTok{g\_ccf\_neg }\OtherTok{\textless{}{-}} \FunctionTok{neg\_lag\_peak}\NormalTok{(g\_ccf\_tbl)}
-\NormalTok{s\_ccf\_neg }\OtherTok{\textless{}{-}} \FunctionTok{neg\_lag\_peak}\NormalTok{(s\_ccf\_tbl)}
-\NormalTok{x\_ccf\_neg }\OtherTok{\textless{}{-}} \FunctionTok{neg\_lag\_peak}\NormalTok{(x\_ccf\_tbl)}
-\end{Highlighting}
-\end{Shaded}
+\subsubsection{Mackenzie Blackwood}\label{mackenzie-blackwood}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# Time series plots for the response and candidate predictors.}
+\CommentTok{\# Time series plots for Blackwood.}
 \NormalTok{op }\OtherTok{\textless{}{-}}\NormalTok{ graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{no.readonly =} \ConstantTok{TRUE}\NormalTok{)}
 \FunctionTok{on.exit}\NormalTok{(graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(op), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{)}
 \NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
 \NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
 \NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Even{-}Strength Cumulative GSAx\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Blackwood: EV Cumulative GSAx\textquotesingle{}}\NormalTok{,}
   \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{ylab =} \StringTok{\textquotesingle{}Cumulative GSAx at EV (Goals)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{col =} \StringTok{\textquotesingle{}darkgreen\textquotesingle{}}\NormalTok{,}
@@ -629,7 +537,7 @@ For forecast evaluation, I use Blackwood's move to Colorado as the forecasting c
 \NormalTok{)}
 \NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
 \NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Even{-}Strength Game{-}by{-}Game GSAx\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Blackwood: EV Game{-}by{-}Game GSAx\textquotesingle{}}\NormalTok{,}
   \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{ylab =} \StringTok{\textquotesingle{}GSAx at EV (Goals)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{col =} \StringTok{\textquotesingle{}firebrick\textquotesingle{}}\NormalTok{,}
@@ -637,7 +545,7 @@ For forecast evaluation, I use Blackwood's move to Colorado as the forecasting c
 \NormalTok{)}
 \NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
 \NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Even{-}Strength Game{-}by{-}Game Save Percentage\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Blackwood: EV Game{-}by{-}Game Save Percentage\textquotesingle{}}\NormalTok{,}
   \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{ylab =} \StringTok{\textquotesingle{}SV\% at EV\textquotesingle{}}\NormalTok{,}
   \AttributeTok{col =} \StringTok{\textquotesingle{}purple4\textquotesingle{}}\NormalTok{,}
@@ -645,7 +553,7 @@ For forecast evaluation, I use Blackwood's move to Colorado as the forecasting c
 \NormalTok{)}
 \NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
 \NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Team Even{-}Strength xGF\%\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Blackwood: Team EV xGF\%\textquotesingle{}}\NormalTok{,}
   \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{ylab =} \StringTok{\textquotesingle{}Team xGF\% at EV (Percent)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{col =} \StringTok{\textquotesingle{}navy\textquotesingle{}}\NormalTok{,}
@@ -656,132 +564,75 @@ For forecast evaluation, I use Blackwood's move to Colorado as the forecasting c
 
 \begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-10-1} \end{center}
 
-\begin{itemize}
-\item
-  The \texttt{cumulative\_gsax\_ev} data is Blackwood's running even-strength goals saved above expected over 287 career games. Its mean behavior is clearly time-dependent and non-linear, since the series rises early, declines for a long middle stretch, and then recovers later. There is no visible repeated seasonal pattern. Its statistical range is \(\max(H_t) - \min(H_t) = 39.145\) goals. Because the series is cumulative, its spread changes gradually rather than abruptly, and there is no strong evidence of heteroscedastic fanning or short-run volatility clustering.
-\item
-  The \texttt{gsax\_ev} data is Blackwood's game-by-game even-strength goals saved above expected in goals. The series fluctuates around a roughly stable center rather than showing a strong long-run deterministic trend, although there are stretches of better and worse results. There is again no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = 8.111\) goals. The variance looks fairly stable over time, so it appears approximately homoskedastic, but there are several isolated positive and negative spikes, so the game-by-game series is clearly more volatile than the cumulative series.
-\item
-  The \texttt{sv\_pct\_ev} data is Blackwood's game-by-game even-strength save percentage in proportion form. Like \texttt{gsax\_ev}, it fluctuates around a fairly stable mean rather than showing a clear deterministic trend, and there is no visible repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = 0.5\). The spread looks broadly stable over the sample, so there is no strong visual evidence of heteroscedasticity. It does show occasional sharp single-game jumps, including several very strong and very weak save-percentage games, so it is moderately volatile in the short run.
-\item
-  The \texttt{team\_xg\_pct\_ev} data is Blackwood's team even-strength expected-goal share percentage, measured in percentage points, over the same 287 career games. Its mean behavior is time-dependent, but not in a smooth polynomial way; instead, it shows regime changes that line up more naturally with team context changes. There is no clear repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = 71.427\) percentage points. The spread looks fairly stable over time, so it appears approximately homoskedastic, and while it does move sharply at times, it is not strongly volatile in the same spike-like way as the two game-by-game goalie-performance series.
-\end{itemize}
+The \texttt{cumulative\_gsax\_ev} data is Blackwood's running even-strength goals saved above expected in goals over 285 career games from 2018-12-18 through 2026-03-28. Its mean behavior is clearly time-dependent and non-linear: the series rises early, declines for a long middle stretch, and then partially recovers late, which matches the idea that Blackwood experienced meaningful changes in team and career context over time. There is no visible repeated seasonal pattern. Its statistical range is \(\max(CG_t) - \min(CG_t) = 39.145\) goals. Because the series is cumulative, the spread changes gradually rather than abruptly, so there is no strong evidence of heteroscedastic fanning or short-run volatility clustering.
+
+The \texttt{gsax\_ev} data is Blackwood's game-by-game even-strength GSAx in goals over the same 285 games. Unlike the cumulative series, it fluctuates around a fairly stable center and does not show a clear deterministic long-run trend, although there are clusters of better and worse games. There is again no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = 8.111\) goals. The variance looks fairly stable over time, so it appears approximately homoskedastic, but there are several isolated positive and negative spikes, so the series is clearly volatile in the short run.
+
+The \texttt{sv\_pct\_ev} data is Blackwood's game-by-game even-strength save percentage in proportion form. The mean appears more stable than the cumulative GSAx series, though there is still mild curvature over the full career path rather than a perfectly flat level. There is no clear repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = 0.5\). The spread looks broadly stable over time, so there is no strong visual evidence of heteroscedasticity, but individual games can still jump sharply up or down, which makes the series moderately volatile.
+
+The \texttt{team\_xg\_pct\_ev} data is Blackwood's team even-strength expected-goal share percentage in percentage points. Its mean behavior is time-dependent, but not in a smooth linear way; instead, it shows broader regime changes that line up naturally with changes in team environment. There is no visible repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = 59.627\) percentage points. The variance appears roughly stable over time, so the series looks approximately homoskedastic, and while it does move materially, it is not as spike-like or volatile as the two game-by-game goalie-performance series.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# Periodogram for cumulative GSAx at even strength.}
-\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{plot}\NormalTok{(}
-\NormalTok{  gsax\_period}\SpecialCharTok{$}\NormalTok{f,}
-\NormalTok{  gsax\_period}\SpecialCharTok{$}\NormalTok{P,}
-  \AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Periodogram for cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{xlab =} \StringTok{\textquotesingle{}Frequency\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{ylab =} \StringTok{\textquotesingle{}P(frequency)\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{col =} \StringTok{\textquotesingle{}navy\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{lwd =} \DecValTok{2}
-\NormalTok{)}
-\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{abline}\NormalTok{(}\AttributeTok{v =}\NormalTok{ gsax\_period}\SpecialCharTok{$}\NormalTok{freq, }\AttributeTok{col =} \StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\CommentTok{\# Periodograms for Blackwood.}
+\NormalTok{op }\OtherTok{\textless{}{-}}\NormalTok{ graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{no.readonly =} \ConstantTok{TRUE}\NormalTok{)}
+\FunctionTok{on.exit}\NormalTok{(graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(op), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\ControlFlowTok{for}\NormalTok{ (nm }\ControlFlowTok{in} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}gsax\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}sv\_pct\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}team\_xg\_pct\_ev\textquotesingle{}}\NormalTok{)) \{}
+\NormalTok{  info }\OtherTok{\textless{}{-}}\NormalTok{ blackwood\_analysis[[nm]]}\SpecialCharTok{$}\NormalTok{period}
+\NormalTok{  title\_text }\OtherTok{\textless{}{-}} \ControlFlowTok{switch}\NormalTok{(}
+\NormalTok{    nm,}
+    \AttributeTok{cumulative\_gsax\_ev =} \StringTok{\textquotesingle{}Blackwood: Periodogram for cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{gsax\_ev =} \StringTok{\textquotesingle{}Blackwood: Periodogram for gsax\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{sv\_pct\_ev =} \StringTok{\textquotesingle{}Blackwood: Periodogram for sv\_pct\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{team\_xg\_pct\_ev =} \StringTok{\textquotesingle{}Blackwood: Periodogram for team\_xg\_pct\_ev\textquotesingle{}}
+\NormalTok{  )}
+\NormalTok{  graphics}\SpecialCharTok{::}\FunctionTok{plot}\NormalTok{(}
+\NormalTok{    info}\SpecialCharTok{$}\NormalTok{f,}
+\NormalTok{    info}\SpecialCharTok{$}\NormalTok{P,}
+    \AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{main =}\NormalTok{ title\_text,}
+    \AttributeTok{xlab =} \StringTok{\textquotesingle{}Frequency\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{ylab =} \StringTok{\textquotesingle{}P(frequency)\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{col =} \StringTok{\textquotesingle{}navy\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{lwd =} \DecValTok{2}
+\NormalTok{  )}
+\NormalTok{  graphics}\SpecialCharTok{::}\FunctionTok{abline}\NormalTok{(}\AttributeTok{v =}\NormalTok{ info}\SpecialCharTok{$}\NormalTok{freq, }\AttributeTok{col =} \StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\NormalTok{\}}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-11-1} \end{center}
 
-The periodogram for \texttt{cumulative\_gsax\_ev} has its dominant peak at frequency \(f = 0.003484\), which corresponds to an implied period of about 287 games. Since that period is essentially the full sample length, it reflects long-run trend rather than practical seasonality. So based on the periodogram, I do not include any seasonal harmonic or indicator terms in the candidate models.
+For Blackwood, none of the four periodograms suggests a convincing seasonal cycle. For \texttt{cumulative\_gsax\_ev}, there is a very prominent spike, but it is concentrated essentially at frequency 0, with dominant frequency \(f = 0.003509\) and implied period about 285 games, so that spike reflects long-run trend rather than seasonality. For \texttt{gsax\_ev} and \texttt{sv\_pct\_ev}, the highest peaks occur at implied periods of about 4.38 and 2.79 games, but those peaks are not sharply separated from many other nearby peaks of similar height, so the periodograms do not show the kind of isolated dominant spike that would support a clean seasonal frequency. For \texttt{team\_xg\_pct\_ev}, the stronger low-frequency peak again sits very close to 0 and is more consistent with broad team-context drift or regime change than with a stable repeating cycle. Therefore, I do not include harmonic terms for Blackwood.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\# ACF and CCF diagnostics for the cumulative response.}
-\NormalTok{op }\OtherTok{\textless{}{-}}\NormalTok{ graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{no.readonly =} \ConstantTok{TRUE}\NormalTok{)}
-\FunctionTok{on.exit}\NormalTok{(graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(op), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{)}
-\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
-\NormalTok{stats}\SpecialCharTok{::}\FunctionTok{acf}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev, }\AttributeTok{lag.max =} \DecValTok{8}\NormalTok{, }\AttributeTok{main =} \StringTok{\textquotesingle{}ACF: cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{)}
-\NormalTok{stats}\SpecialCharTok{::}\FunctionTok{ccf}\NormalTok{(}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev),}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev),}
-  \AttributeTok{lag.max =} \DecValTok{8}\NormalTok{,}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}CCF: gsax\_ev vs cumulative\_gsax\_ev\textquotesingle{}}
-\NormalTok{)}
-\NormalTok{stats}\SpecialCharTok{::}\FunctionTok{ccf}\NormalTok{(}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev),}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev),}
-  \AttributeTok{lag.max =} \DecValTok{8}\NormalTok{,}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}CCF: sv\_pct\_ev vs cumulative\_gsax\_ev\textquotesingle{}}
-\NormalTok{)}
-\NormalTok{stats}\SpecialCharTok{::}\FunctionTok{ccf}\NormalTok{(}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev),}
-  \FunctionTok{as.numeric}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev),}
-  \AttributeTok{lag.max =} \DecValTok{8}\NormalTok{,}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}CCF: team\_xg\_pct\_ev vs cumulative\_gsax\_ev\textquotesingle{}}
-\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-12-1} \end{center}
-
-The ACF of \texttt{cumulative\_gsax\_ev} is extremely high at nearby lags, with lag-1 autocorrelation 0.989 and lag-4 autocorrelation 0.953. That is expected for a cumulative series and reinforces the idea that the mean structure is strongly time-dependent. Since our class regression approach has focused on modeling the mean directly with trend terms rather than adding lagged responses, I use this ACF mainly as evidence that a simple linear trend will not be enough.
-
-For the CCFs, the noncontemporaneous lead-lag relation from \texttt{gsax\_ev} to \texttt{cumulative\_gsax\_ev} is weak, but among negative lags the largest spike occurs at lag -3 with correlation 0.059, so if I try a lagged GSAx predictor, \(G_{t-3}\) is the most defensible one. The CCF between \texttt{sv\_pct\_ev} and \texttt{cumulative\_gsax\_ev} is stronger, with a very large contemporaneous spike as expected, but among negative lags the largest spike occurs at lag -3 with correlation 0.176, so the natural lagged save-percentage predictor is \(S_{t-3}\). The CCF between \texttt{team\_xg\_pct\_ev} and \texttt{cumulative\_gsax\_ev} is extremely weak throughout, with the largest negative-lag spike only about 0.021 at lag -6, so I do not see enough evidence to keep \texttt{team\_xg\_pct\_ev} in the final candidate model set.
-
-Let \(H_t\) denote \texttt{cumulative\_gsax\_ev}, let \(G_t\) denote \texttt{gsax\_ev}, and let \(S_t\) denote \texttt{sv\_pct\_ev}. Based on the non-linear shape in the response plot, the lack of seasonality in the periodogram, the strong persistence of the cumulative response, and the response-based CCFs, I compare the following six candidate models:
-
+Since no meaningful seasonality is present, I compare the same four nonseasonal polynomial trend models for each Blackwood series \(Y_t\):
 \[
 \begin{aligned}
-\text{Model I: } & H_t = \beta_0 + \beta_1 t + W_t, \\
-\text{Model II: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + W_t, \\
-\text{Model III: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + W_t, \\
-\text{Model IV: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 S_{t-3} + W_t, \\
-\text{Model V: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 G_{t-3} + W_t, \\
-\text{Model VI: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 G_{t-3} + \beta_5 S_{t-3} + W_t.
+\text{Model I: } & Y_t = \beta_0 + \beta_1 t + W_t, \\
+\text{Model II: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + W_t, \\
+\text{Model III: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + W_t, \\
+\text{Model IV: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 \frac{t^4}{4!} + W_t.
 \end{aligned}
 \]
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{gsax\_forms }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
-  \StringTok{\textquotesingle{}Model I\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t,}
-  \StringTok{\textquotesingle{}Model II\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ t2,}
-  \StringTok{\textquotesingle{}Model III\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ t2 }\SpecialCharTok{+}\NormalTok{ t3,}
-  \StringTok{\textquotesingle{}Model IV\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ t2 }\SpecialCharTok{+}\NormalTok{ t3 }\SpecialCharTok{+}\NormalTok{ SL3,}
-  \StringTok{\textquotesingle{}Model V\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ t2 }\SpecialCharTok{+}\NormalTok{ t3 }\SpecialCharTok{+}\NormalTok{ GL3,}
-  \StringTok{\textquotesingle{}Model VI\textquotesingle{}} \OtherTok{=}\NormalTok{ H }\SpecialCharTok{\textasciitilde{}}\NormalTok{ t }\SpecialCharTok{+}\NormalTok{ t2 }\SpecialCharTok{+}\NormalTok{ t3 }\SpecialCharTok{+}\NormalTok{ GL3 }\SpecialCharTok{+}\NormalTok{ SL3}
-\NormalTok{)}
-
-\NormalTok{models\_gsax }\OtherTok{\textless{}{-}} \FunctionTok{lapply}\NormalTok{(gsax\_forms, }\ControlFlowTok{function}\NormalTok{(form) stats}\SpecialCharTok{::}\FunctionTok{lm}\NormalTok{(form, }\AttributeTok{data =}\NormalTok{ gsax\_data))}
-\NormalTok{gsax\_fit\_table }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(}
-\NormalTok{  rbind,}
-  \FunctionTok{lapply}\NormalTok{(}\FunctionTok{names}\NormalTok{(models\_gsax), }\ControlFlowTok{function}\NormalTok{(name) }\FunctionTok{cbind}\NormalTok{(}\AttributeTok{Model =}\NormalTok{ name, }\FunctionTok{fit\_table\_proj}\NormalTok{(models\_gsax[[name]])))}
-\NormalTok{)}
-\NormalTok{gsax\_fc\_table }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(}
-\NormalTok{  rbind,}
-  \FunctionTok{lapply}\NormalTok{(}\FunctionTok{names}\NormalTok{(gsax\_forms), }\ControlFlowTok{function}\NormalTok{(name) }\FunctionTok{cbind}\NormalTok{(}\AttributeTok{Model =}\NormalTok{ name, }\FunctionTok{fcst\_metrics\_proj}\NormalTok{(gsax\_data, gsax\_forms[[name]])))}
-\NormalTok{)}
-\FunctionTok{rownames}\NormalTok{(gsax\_fit\_table) }\OtherTok{\textless{}{-}} \ConstantTok{NULL}
-\FunctionTok{rownames}\NormalTok{(gsax\_fc\_table) }\OtherTok{\textless{}{-}} \ConstantTok{NULL}
-\NormalTok{gsax\_fit\_table}\SpecialCharTok{$}\NormalTok{Parameters }\OtherTok{\textless{}{-}} \FunctionTok{as.integer}\NormalTok{(gsax\_fit\_table}\SpecialCharTok{$}\NormalTok{Parameters)}
-
-\NormalTok{gsax\_best }\OtherTok{\textless{}{-}}\NormalTok{ models\_gsax[[}\StringTok{\textquotesingle{}Model IV\textquotesingle{}}\NormalTok{]]}
-\end{Highlighting}
-\end{Shaded}
+\paragraph{Blackwood: Cumulative Goals Saved Above Expected}\label{blackwood-cumulative-goals-saved-above-expected}
 
 \begin{center}
 \normalsize
 
 \begin{tabular}{ccccccc}
 \toprule
-Model & \# Par & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
 \midrule
-Model I & 2 & 0.4066 & 0 & 7.0544 & 5.2168 & 7.0929\\
-Model II & 3 & 0.5812 & 0 & 6.7094 & 4.8720 & 6.7608\\
-Model III & 4 & 0.8170 & 0 & 5.8849 & 4.0478 & 5.9492\\
-Model IV & 5 & 0.8204 & 0 & 5.8697 & 4.0329 & 5.9468\\
-Model V & 5 & 0.8210 & 0 & 5.8664 & 4.0296 & 5.9435\\
-\addlinespace
-Model VI & 6 & 0.8206 & 0 & 5.8722 & 4.0357 & 5.9621\\
+Model I & 2 & 0.4058 & <0.0001 & 7.0666 & 5.2290 & 7.1050\\
+Model II & 3 & 0.5716 & <0.0001 & 6.7429 & 4.9055 & 6.7941\\
+Model III & 4 & 0.8185 & <0.0001 & 5.8874 & 4.0503 & 5.9515\\
+Model IV & 5 & 0.8223 & <0.0001 & 5.8700 & 4.0332 & 5.9469\\
 \bottomrule
 \end{tabular}
 \normalsize
 \end{center}
-
 \begin{center}
 \normalsize
 
@@ -789,53 +640,381 @@ Model VI & 6 & 0.8206 & 0 & 5.8722 & 4.0357 & 5.9621\\
 \toprule
 Model & ME & MPE & MSE & MAE & MAPE\\
 \midrule
-Model I & 18.5862 & -146.4454 & 417.2891 & 18.5862 & 146.4454\\
-Model II & 30.4067 & -236.3151 & 1082.1976 & 30.4067 & 236.3151\\
-Model III & -3.6883 & 39.0541 & 59.5635 & 5.7011 & 49.7332\\
-Model IV & -2.9815 & 33.2417 & 49.6543 & 5.2292 & 45.1840\\
-Model V & -3.3239 & 36.0647 & 53.2939 & 5.3759 & 46.9801\\
-\addlinespace
-Model VI & -3.0266 & 33.6143 & 49.9644 & 5.2379 & 45.3665\\
+Model I & 18.5387 & -152.0291 & 418.3032 & 18.5387 & 152.0291\\
+Model II & 30.4078 & -245.2769 & 1084.0513 & 30.4078 & 245.2769\\
+Model III & -0.4547 & 11.8134 & 24.6064 & 3.7304 & 29.7550\\
+Model IV & -64.6335 & 572.4741 & 6653.5218 & 64.6335 & 572.4741\\
 \bottomrule
 \end{tabular}
 \normalsize
 \end{center}
 
+\paragraph{Blackwood: Game-by-Game GSAx}\label{blackwood-game-by-game-gsax}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & 0.0004 & 0.2898 & 3.4953 & 1.6577 & 3.5337\\
+Model II & 3 & 0.0019 & 0.2839 & 3.4973 & 1.6599 & 3.5486\\
+Model III & 4 & -0.0006 & 0.4180 & 3.5032 & 1.6661 & 3.5673\\
+Model IV & 5 & 0.0106 & 0.1375 & 3.4955 & 1.6587 & 3.5724\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & 0.4424 & 136.2439 & 1.6950 & 1.0868 & 144.0853\\
+Model II & 0.0921 & 80.5572 & 1.5588 & 1.0319 & 114.2257\\
+Model III & -0.8172 & -55.4203 & 2.7270 & 1.3039 & 341.7306\\
+Model IV & 2.0009 & 343.5387 & 6.9712 & 2.1541 & 578.1639\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+\paragraph{Blackwood: Game-by-Game Save Percentage}\label{blackwood-game-by-game-save-percentage}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & 0.0023 & 0.1980 & -2.2437 & -4.0813 & -2.2053\\
+Model II & 3 & 0.0128 & 0.0598 & -2.2508 & -4.0882 & -2.1995\\
+Model III & 4 & 0.0094 & 0.1300 & -2.2439 & -4.0810 & -2.1798\\
+Model IV & 5 & 0.0264 & 0.0215 & -2.2577 & -4.0945 & -2.1808\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & 0.0329 & 2.4804 & 0.0085 & 0.0713 & 8.3349\\
+Model II & 0.0043 & -0.7235 & 0.0075 & 0.0630 & 7.6539\\
+Model III & -0.0894 & -11.2195 & 0.0192 & 0.0999 & 12.2918\\
+Model IV & -0.0254 & -4.0329 & 0.0082 & 0.0613 & 7.6986\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+\paragraph{Blackwood: Team xGF\%}\label{blackwood-team-xgf}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & 0.0275 & 0.0029 & 7.8687 & 6.0312 & 7.9072\\
+Model II & 3 & 0.0584 & <0.0001 & 7.8399 & 6.0026 & 7.8912\\
+Model III & 4 & 0.0742 & <0.0001 & 7.8265 & 5.9894 & 7.8906\\
+Model IV & 5 & 0.0709 & <0.0001 & 7.8335 & 5.9967 & 7.9104\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & 12.8374 & 18.6796 & 319.6367 & 14.8493 & 24.3470\\
+Model II & 20.3512 & 32.9025 & 582.9084 & 20.6871 & 33.9199\\
+Model III & 22.7150 & 37.3670 & 696.3286 & 22.8995 & 37.9302\\
+Model IV & -36.6940 & -74.6255 & 2858.3043 & 40.1725 & 80.0491\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+For Blackwood's \texttt{cumulative\_gsax\_ev}, Model IV has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, but once the holdout period is defined by the Colorado move, its forecast performance deteriorates badly. Since \texttt{cumulative\_gsax\_ev} can be negative or near zero, I rely more on MSE and MAE than on MPE and MAPE for forecast evaluation here. Model III keeps essentially all of the strong in-sample fit while forecasting much better across the Colorado segment, so I select Model III as the practical final model for Blackwood's cumulative GSAx. The fitted model is
+\[
+\widehat{CG}_t = -5.460662 + 0.305395 t - 0.008922 \frac{t^2}{2!} + 0.000072 \frac{t^3}{3!}
+\]
+where \(CG_t\) is Blackwood's cumulative even-strength GSAx in goals at career game \(t = 1, 2, \ldots, 285\).
+
+For Blackwood's \texttt{gsax\_ev}, the story is very different. All four models have adjusted \(R^2\) values near zero and the overall F-tests are not significant, so there is no strong evidence of a meaningful deterministic polynomial trend in Blackwood's game-by-game GSAx. Under the Colorado split, however, the holdout MSE and MAE are both smallest for Model II, even though the information criteria still prefer Model I. Since the forecasting target here is specifically the post-trade segment and Model II is only one step more complex, I select Model II as the better practical forecasting model. The fitted model is
+\[
+\widehat{G}_t = 0.027957 - 0.003516 t + 0.000032 \frac{t^2}{2!}
+\]
+where \(G_t\) is Blackwood's even-strength game-by-game GSAx in goals at career game \(t\).
+
+For Blackwood's \texttt{sv\_pct\_ev}, the criteria remain mixed, but the Colorado split shifts the forecasting preference toward the quadratic model. Model IV still gives the largest adjusted \(R^2\) and the smallest AIC and AICc, but Model II gives the smallest holdout MSE, while Model IV only narrowly improves MAE. Since the quadratic model is much simpler and already has a significant overall F-test, I select Model II as the more reasonable compromise between fit, forecasting, and parsimony. The fitted model is
+\[
+\widehat{S}_t = 0.933529 - 0.000509 t + 0.000003 \frac{t^2}{2!}
+\]
+where \(S_t\) is Blackwood's even-strength save percentage in proportion form at career game \(t\).
+
+For Blackwood's \texttt{team\_xg\_pct\_ev}, the Colorado split changes the conclusion materially. Model III still has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, but when the forecasting target is the post-trade Colorado segment, Model I gives the smallest holdout MSE and MAE by a wide margin. Since the team change creates a real regime break, I place more weight on forecast performance here than on the full-sample descriptive fit, and I select Model I as the more useful model for this exercise. The fitted model is
+\[
+\widehat{X}_t = 44.788655 + 0.026593 t
+\]
+where \(X_t\) is Blackwood's team even-strength xGF\% in percentage points at career game \(t\).
+
+\subsubsection{Igor Shesterkin}\label{igor-shesterkin}
+
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# Observed versus fitted plot for selected cumulative GSAx model.}
+\CommentTok{\# Time series plots for Shesterkin.}
+\NormalTok{op }\OtherTok{\textless{}{-}}\NormalTok{ graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{no.readonly =} \ConstantTok{TRUE}\NormalTok{)}
+\FunctionTok{on.exit}\NormalTok{(graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(op), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
 \NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
-\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(gsax\_data}\SpecialCharTok{$}\NormalTok{H, }\AttributeTok{start =} \FunctionTok{min}\NormalTok{(gsax\_data}\SpecialCharTok{$}\NormalTok{t), }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
-  \AttributeTok{main =} \StringTok{\textquotesingle{}Observed vs Fitted cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{,}
+\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{cumulative\_gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Shesterkin: EV Cumulative GSAx\textquotesingle{}}\NormalTok{,}
   \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
   \AttributeTok{ylab =} \StringTok{\textquotesingle{}Cumulative GSAx at EV (Goals)\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{col =} \StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{,}
-  \AttributeTok{lwd =} \DecValTok{2}
-\NormalTok{)}
-\FunctionTok{lines}\NormalTok{(}
-\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(stats}\SpecialCharTok{::}\FunctionTok{fitted}\NormalTok{(gsax\_best), }\AttributeTok{start =} \FunctionTok{min}\NormalTok{(gsax\_data}\SpecialCharTok{$}\NormalTok{t), }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
   \AttributeTok{col =} \StringTok{\textquotesingle{}darkgreen\textquotesingle{}}\NormalTok{,}
   \AttributeTok{lwd =} \DecValTok{2}
 \NormalTok{)}
-\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{legend}\NormalTok{(}\StringTok{\textquotesingle{}topleft\textquotesingle{}}\NormalTok{, }\AttributeTok{legend =} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}Observed\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Fitted\textquotesingle{}}\NormalTok{), }\AttributeTok{col =} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}darkgreen\textquotesingle{}}\NormalTok{), }\AttributeTok{lty =} \DecValTok{1}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{, }\AttributeTok{bty =} \StringTok{\textquotesingle{}n\textquotesingle{}}\NormalTok{)}
+\NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
+\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Shesterkin: EV Game{-}by{-}Game GSAx\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{ylab =} \StringTok{\textquotesingle{}GSAx at EV (Goals)\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{col =} \StringTok{\textquotesingle{}firebrick\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{lwd =} \DecValTok{2}
+\NormalTok{)}
+\NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
+\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Shesterkin: EV Game{-}by{-}Game Save Percentage\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{ylab =} \StringTok{\textquotesingle{}SV\% at EV\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{col =} \StringTok{\textquotesingle{}purple4\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{lwd =} \DecValTok{2}
+\NormalTok{)}
+\NormalTok{astsa}\SpecialCharTok{::}\FunctionTok{tsplot}\NormalTok{(}
+\NormalTok{  stats}\SpecialCharTok{::}\FunctionTok{ts}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev, }\AttributeTok{start =} \DecValTok{1}\NormalTok{, }\AttributeTok{frequency =} \DecValTok{1}\NormalTok{),}
+  \AttributeTok{main =} \StringTok{\textquotesingle{}Shesterkin: Team EV xGF\%\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{xlab =} \StringTok{\textquotesingle{}Career Game Number (t)\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{ylab =} \StringTok{\textquotesingle{}Team xGF\% at EV (Percent)\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{col =} \StringTok{\textquotesingle{}navy\textquotesingle{}}\NormalTok{,}
+  \AttributeTok{lwd =} \DecValTok{2}
+\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-16-1} \end{center}
+\begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-13-1} \end{center}
 
-The comparison table shows that the linear and quadratic trend models are inadequate once the clear curvature of the series is taken seriously. Model III, the cubic trend model, is a major improvement over Models I and II. Among the lag-augmented models, the in-sample fit criteria slightly favor Model V, which adds the lag-3 GSAx term, but the forecast criteria favor Model IV, which adds the lag-3 save-percentage term. Model VI does not improve enough to justify keeping both lagged predictors together, since its added terms are not individually significant in the fuller model. Because the response-based CCF is stronger for \texttt{sv\_pct\_ev} than for \texttt{gsax\_ev}, and because Model IV gives the better holdout MSE and MAE, I select Model IV for \texttt{cumulative\_gsax\_ev}.
+The \texttt{cumulative\_gsax\_ev} data is Shesterkin's running even-strength goals saved above expected in goals over his first 285 matched career games from 2020-01-07 through 2025-11-04. Compared with Blackwood, the most striking difference is that Shesterkin's cumulative GSAx follows a much steadier upward path and finishes far above zero. The mean behavior is clearly time-dependent and non-linear, but the dominant shape is strong upward growth with only moderate flattening or pullback episodes. There is no visible repeated seasonal pattern. Its statistical range is \(\max(CG_t) - \min(CG_t) = 72.932\) goals. As with Blackwood, the cumulative nature of the series means there is no obvious short-run volatility clustering or abrupt fanning of variance.
 
-The fitted model is
+The \texttt{gsax\_ev} data is Shesterkin's game-by-game even-strength GSAx in goals. Compared with Blackwood's game-by-game GSAx, it fluctuates around a somewhat higher center, which is consistent with Shesterkin's much more positive cumulative path, but it is still a noisy game-by-game series with no strong deterministic trend. There is no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = 7.145\) goals. The spread looks fairly stable over time, so the series appears approximately homoskedastic, and there are isolated positive and negative spikes, so it remains volatile in the short run.
+
+The \texttt{sv\_pct\_ev} data is Shesterkin's game-by-game even-strength save percentage in proportion form. Compared with Blackwood, Shesterkin's series sits at a slightly higher average level and appears a little more stable overall, although it still has occasional sharp one-game deviations. There is no visible repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = 0.5556\). The variance looks roughly constant across time, so there is no strong visual sign of heteroscedasticity, and the short-run volatility is moderate rather than extreme.
+
+The \texttt{team\_xg\_pct\_ev} data is Shesterkin's team even-strength expected-goal share percentage in percentage points over the same 285 games. Compared with Blackwood, this series looks less dominated by franchise-level regime changes because Shesterkin stays with one organization throughout the matched sample. Its mean behavior still moves over time, but the shifts are smoother and more incremental. There is no visible repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = 57.737\) percentage points. The spread appears roughly constant over time, so the series looks approximately homoskedastic, and it is less spiky than the goalie-performance series.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Periodograms for Shesterkin.}
+\NormalTok{op }\OtherTok{\textless{}{-}}\NormalTok{ graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{no.readonly =} \ConstantTok{TRUE}\NormalTok{)}
+\FunctionTok{on.exit}\NormalTok{(graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(op), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{graphics}\SpecialCharTok{::}\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\ControlFlowTok{for}\NormalTok{ (nm }\ControlFlowTok{in} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}gsax\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}sv\_pct\_ev\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}team\_xg\_pct\_ev\textquotesingle{}}\NormalTok{)) \{}
+\NormalTok{  info }\OtherTok{\textless{}{-}}\NormalTok{ shesterkin\_analysis[[nm]]}\SpecialCharTok{$}\NormalTok{period}
+\NormalTok{  title\_text }\OtherTok{\textless{}{-}} \ControlFlowTok{switch}\NormalTok{(}
+\NormalTok{    nm,}
+    \AttributeTok{cumulative\_gsax\_ev =} \StringTok{\textquotesingle{}Shesterkin: Periodogram for cumulative\_gsax\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{gsax\_ev =} \StringTok{\textquotesingle{}Shesterkin: Periodogram for gsax\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{sv\_pct\_ev =} \StringTok{\textquotesingle{}Shesterkin: Periodogram for sv\_pct\_ev\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{team\_xg\_pct\_ev =} \StringTok{\textquotesingle{}Shesterkin: Periodogram for team\_xg\_pct\_ev\textquotesingle{}}
+\NormalTok{  )}
+\NormalTok{  graphics}\SpecialCharTok{::}\FunctionTok{plot}\NormalTok{(}
+\NormalTok{    info}\SpecialCharTok{$}\NormalTok{f,}
+\NormalTok{    info}\SpecialCharTok{$}\NormalTok{P,}
+    \AttributeTok{type =} \StringTok{\textquotesingle{}l\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{main =}\NormalTok{ title\_text,}
+    \AttributeTok{xlab =} \StringTok{\textquotesingle{}Frequency\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{ylab =} \StringTok{\textquotesingle{}P(frequency)\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{col =} \StringTok{\textquotesingle{}navy\textquotesingle{}}\NormalTok{,}
+    \AttributeTok{lwd =} \DecValTok{2}
+\NormalTok{  )}
+\NormalTok{  graphics}\SpecialCharTok{::}\FunctionTok{abline}\NormalTok{(}\AttributeTok{v =}\NormalTok{ info}\SpecialCharTok{$}\NormalTok{freq, }\AttributeTok{col =} \StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{, }\AttributeTok{lty =} \DecValTok{2}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework4_files/figure-latex/unnamed-chunk-14-1} \end{center}
+
+For Shesterkin, the periodograms also fail to show a convincing seasonal cycle. For \texttt{cumulative\_gsax\_ev}, the dominant spike again occurs extremely close to frequency 0, with \(f = 0.003509\), so it is better interpreted as long-run trend than seasonality. For \texttt{gsax\_ev} and \texttt{sv\_pct\_ev}, the strongest peaks correspond to implied periods of about 2.79 and 3 games, but they are only slightly taller than several other peaks, so there is no single isolated spectral spike that clearly dominates the rest of the plot. For \texttt{team\_xg\_pct\_ev}, the top peaks are also very close in height to one another, which again argues against a clean seasonal frequency. So for Shesterkin, I also omit harmonic terms and use the same four nonseasonal polynomial trend models.
+
+\paragraph{Shesterkin: Cumulative Goals Saved Above Expected}\label{shesterkin-cumulative-goals-saved-above-expected}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & 0.9593 & <0.0001 & 5.6224 & 3.7848 & 5.6608\\
+Model II & 3 & 0.9771 & <0.0001 & 5.0492 & 3.2118 & 5.1004\\
+Model III & 4 & 0.9773 & <0.0001 & 5.0458 & 3.2086 & 5.1098\\
+Model IV & 5 & 0.9812 & <0.0001 & 4.8584 & 3.0215 & 4.9353\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & -8.0143 & -13.6854 & 73.3677 & 8.0180 & 13.6916\\
+Model II & 0.5612 & 0.5564 & 11.2062 & 2.7151 & 4.4855\\
+Model III & 9.8773 & 15.8069 & 152.3764 & 9.8773 & 15.8069\\
+Model IV & 0.2655 & 0.2747 & 6.0653 & 1.8962 & 3.1813\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+\paragraph{Shesterkin: Game-by-Game GSAx}\label{shesterkin-game-by-game-gsax}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & -0.0027 & 0.6283 & 3.4519 & 1.6143 & 3.4903\\
+Model II & 3 & -0.0062 & 0.8873 & 3.4589 & 1.6215 & 3.5101\\
+Model III & 4 & -0.0084 & 0.8886 & 3.4645 & 1.6273 & 3.5285\\
+Model IV & 5 & -0.0117 & 0.9492 & 3.4712 & 1.6344 & 3.5481\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & 0.0612 & 102.6476 & 2.3408 & 1.1972 & 102.6476\\
+Model II & 0.3284 & 104.5926 & 2.4582 & 1.2671 & 105.7874\\
+Model III & 0.0436 & 98.4712 & 2.3402 & 1.1897 & 100.9516\\
+Model IV & 0.3129 & 108.1113 & 2.4564 & 1.2691 & 108.3716\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+\paragraph{Shesterkin: Game-by-Game Save Percentage}\label{shesterkin-game-by-game-save-percentage}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & 0.0077 & 0.0744 & -2.3627 & -4.2003 & -2.3243\\
+Model II & 3 & 0.0042 & 0.2027 & -2.3557 & -4.1931 & -2.3045\\
+Model III & 4 & 0.0047 & 0.2294 & -2.3527 & -4.1899 & -2.2886\\
+Model IV & 5 & 0.0031 & 0.3029 & -2.3476 & -4.1845 & -2.2708\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & -0.0088 & -2.4022 & 0.0081 & 0.0617 & 7.8334\\
+Model II & 0.0016 & -1.2446 & 0.0081 & 0.0639 & 7.9908\\
+Model III & -0.0078 & -2.2837 & 0.0080 & 0.0616 & 7.8125\\
+Model IV & -0.0073 & -2.2341 & 0.0080 & 0.0617 & 7.8187\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+\paragraph{Shesterkin: Team xGF\%}\label{shesterkin-team-xgf}
+
+\begin{center}
+\normalsize
+
+\begin{tabular}{ccccccc}
+\toprule
+Model & \# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+Model I & 2 & -0.0006 & 0.3671 & 7.6702 & 5.8326 & 7.7086\\
+Model II & 3 & 0.0005 & 0.3449 & 7.6725 & 5.8351 & 7.7238\\
+Model III & 4 & -0.0015 & 0.4623 & 7.6780 & 5.8408 & 7.7420\\
+Model IV & 5 & 0.0069 & 0.2041 & 7.6730 & 5.8362 & 7.7499\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+\begin{center}
+\normalsize
+
+\begin{tabular}{cccccc}
+\toprule
+Model & ME & MPE & MSE & MAE & MAPE\\
+\midrule
+Model I & -3.9189 & -15.9317 & 144.9772 & 9.7920 & 25.3352\\
+Model II & -4.9320 & -18.2224 & 154.1525 & 10.0938 & 26.4045\\
+Model III & 1.0844 & -4.6721 & 138.7799 & 9.4337 & 22.4344\\
+Model IV & -49.0644 & -117.2569 & 3597.2941 & 49.9238 & 118.5210\\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{center}
+
+For Shesterkin's \texttt{cumulative\_gsax\_ev}, the evidence is much cleaner than it was for Blackwood. Model IV is favored by adjusted \(R^2\), AIC, AICc, BIC, MSE, and MAE, so the criteria all point in the same direction. Compared with Blackwood's cumulative series, Shesterkin's smoother upward path is captured very well by the quartic trend model. I therefore select Model IV for Shesterkin's cumulative GSAx. The fitted model is
 \[
-\widehat H_t
-= -14.123338
-+ 0.314215 t
-- 0.008849 \frac{t^2}{2!}
-+ 0.000071 \frac{t^3}{3!}
-+ 8.67677 S_{t-3},
+\widehat{CG}_t = -0.069001 + 0.127717 t + 0.006883 \frac{t^2}{2!} - 0.000132 \frac{t^3}{3!} + 0.000001 \frac{t^4}{4!}
 \]
-where \(H_t\) is cumulative even-strength GSAx in goals and \(S_{t-3}\) is Blackwood's even-strength save percentage from three games earlier, measured in proportion form. Because Models IV-VI require the lagged terms, all six models are compared on the common aligned sample \(t=4,\ldots,287\), so \(n=284\). The lag-3 \texttt{sv\_pct\_ev} coefficient is statistically significant with \(p = 0.0128\), which is consistent with the strongest noncontemporaneous CCF relation among the candidate predictors. The coefficient of determination is \(R^2 = 0.8229\), so the model explains about 82.29\% of the variation in \texttt{cumulative\_gsax\_ev}. The residual standard error is 4.4982 cumulative-GSAx units, which means on average the fitted cumulative even-strength GSAx differs from the observed cumulative even-strength GSAx by about 4.4982 goals. Because \texttt{cumulative\_gsax\_ev} can be negative or near zero, the percent-based holdout errors MPE and MAPE are less stable here than MSE and MAE, so I rely more on the latter two when discussing forecast performance.
+where \(CG_t\) is Shesterkin's cumulative even-strength GSAx in goals at career game \(t = 1, 2, \ldots, 285\).
 
-In summary, the even-strength evidence does not suggest any meaningful seasonal cycle in cumulative GSAx, so seasonal terms are unnecessary. The time-series plot supports a cubic trend, the ACF confirms that the cumulative response is highly persistent, and the response-based CCFs suggest that lagged save percentage is the most relevant noncontemporaneous predictor among the candidate variables, while \texttt{team\_xg\_pct\_ev} does not show much direct signal against \texttt{cumulative\_gsax\_ev} in this one-goalie setting. So at this stage, the results do not give strong evidence that the measured team-context variable I used is driving cumulative GSAx, but they do suggest that recent goalie-level performance still matters, which means the broader ``GSAx is fully independent of circumstance'' claim remains unsettled rather than confirmed. One limitation is that these exploratory diagnostics were examined on the full dataset before the train-holdout split was used for forecast evaluation, so there is some information leakage in the model-building stage. Also, \texttt{team\_xg\_pct\_ev} is only one public context measure, and the xG model itself still misses information such as detailed pre-shot passing structure. With those limitations noted, Model IV is my final choice for now because it is the best current working model for this stage of the project, not the permanent final conclusion on the research question.
+For Shesterkin's \texttt{gsax\_ev}, the deterministic trend signal is again very weak. The overall F-tests are not significant, the information criteria favor the simplest linear specification, and the forecasting differences between Models I and III are tiny. As with Blackwood, the sensible conclusion is that game-by-game GSAx is largely noisy around a stable level rather than strongly trend-driven. So I select Model I for parsimony. The fitted model is
+\[
+\widehat{G}_t = 0.300274 - 0.000471 t
+\]
+where \(G_t\) is Shesterkin's even-strength game-by-game GSAx in goals at career game \(t\).
+
+For Shesterkin's \texttt{sv\_pct\_ev}, the evidence remains weak under the aligned career-game split. Model I has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, while Model III only barely improves MSE and MAE. Compared with Blackwood, the save-percentage series is a little more stable and shows even less need for higher-order trend terms, so I still select Model I on grounds of parsimony and the very small forecasting differences. The fitted model is
+\[
+\widehat{S}_t = 0.929849 - 0.000095 t
+\]
+where \(S_t\) is Shesterkin's even-strength save percentage in proportion form at career game \(t\).
+
+For Shesterkin's \texttt{team\_xg\_pct\_ev}, the evidence for a deterministic polynomial trend is weak. Model IV has the largest adjusted \(R^2\), but Model I has the smallest AIC, AICc, and BIC, while Model III only slightly improves the holdout MSE and MAE. Since the overall F-tests remain weak and the one-team sample looks comparatively stable, I select Model I as the most sensible summary model for Shesterkin's team xGF\%. The fitted model is
+\[
+\widehat{X}_t = 50.100164 - 0.007235 t
+\]
+where \(X_t\) is Shesterkin's team even-strength xGF\% in percentage points at career game \(t\).
+
+In summary, the univariate trend-and-seasonality analysis suggests that neither goalie shows meaningful seasonality in any of the four even-strength series, so harmonic terms are unnecessary here. Blackwood's cumulative GSAx and team xGF\% are more visibly shaped by broader regime changes, while Shesterkin's cumulative GSAx is much smoother and more strongly trend-driven over the matched sample. The game-by-game GSAx and save-percentage series for both goalies are much noisier and admit only weak deterministic trends. This part by itself does not prove that GSAx is or is not independent of team context, because I am modeling each series separately rather than directly regressing one on another. However, the comparison does support the original project motivation: a traded goalie and a non-traded goalie can have meaningfully different time-series behavior even under the same even-strength xG framework, so the question of whether GSAx is truly team-independent still deserves further study.
 
 \end{document}

@@ -1,0 +1,636 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Homework 5
+author: |
+  Rento Saijo
+date: 'April 6, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\Cov}{\mathrm{Cov}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+# Helper for simple latex table.
+table_latex <- function(x, digits = 3, caption = NULL, size = '\\normalsize', col_names = NULL) {
+  y <- x
+  num_cols <- sapply(y, is.numeric)
+  y[num_cols] <- lapply(y[num_cols], round, digits = digits)
+  tab <- knitr::kable(
+    y,
+    format = 'latex',
+    booktabs = TRUE,
+    caption = caption,
+    col.names = col_names,
+    align = rep('c', ncol(y)),
+    row.names = FALSE,
+    escape = FALSE
+  )
+  knitr::asis_output(
+    paste0("\\begin{center}\n", size, "\n", tab, "\n\\normalsize\n\\end{center}")
+  )
+}
+
+# Helper to draw an ACF in the class style.
+acf_stem_plot <- function(lags, acf_values, main_text) {
+  ylim_vals <- range(c(acf_values, 0, 1))
+  plot(
+    lags,
+    acf_values,
+    type = 'h',
+    lwd = 3,
+    col = 'navy',
+    xlab = 'Lag h',
+    ylab = 'ACF',
+    main = main_text,
+    ylim = c(min(ylim_vals[1] - 0.05, -0.25), 1.05),
+    xaxt = 'n'
+  )
+  axis(1, at = seq(min(lags), max(lags), by = 2))
+  points(lags, acf_values, pch = 16, col = 'navy')
+  abline(h = 0, col = 'gray40')
+}
+```
+
+# Disclosure
+
+GPT-5.4 Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document and simple helper functions were defined for tables and ACF plots.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem-1 (20 points)]
+Suppose a time series follows the following model:
+\[
+X_t = W_t - 0.2W_{t-2},
+\]
+where \(W_t \sim WN(0,\sigma_w^2)\), that is, \(\{W_t\}\) is a white noise with mean \(0\) and variance \(\sigma_w^2\).
+\begin{enumerate}[label=(\alph*)]
+\item Determine its mean.
+\item Determine its Auto-Covariance Function (ACVF).
+\item Find and plot the Auto-Correlation Function (ACF).
+\item Is the process stationary, justify?
+\end{enumerate}
+\end{problem}
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+Determine its mean.
+\end{problem}
+
+Using the linearity of expectation and the fact that \(\E(W_t)=0\) for white noise,
+\[
+\begin{aligned}
+\E(X_t)
+&= \E(W_t - 0.2W_{t-2}) \\
+&= \E(W_t) - 0.2\E(W_{t-2}) \\
+&= 0 - 0.2(0) \\
+&= 0.
+\end{aligned}
+\]
+
+Hence,
+\[
+\mu_X(t) = \mu_X = 0,
+\]
+which is not a function of time \(t\).
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+Determine its Auto-Covariance Function (ACVF).
+\end{problem}
+
+For all integers \(h\),
+\[
+\gamma_X(t,h) = \Cov(X_{t+h},X_t) = \E[(X_{t+h}-\mu_{t+h})(X_t-\mu_t)].
+\]
+Since \(\mu_t = \mu_{t+h} = 0\),
+\[
+\begin{aligned}
+\gamma_X(t,h)
+&= \E(X_{t+h}X_t) \\
+&= \E[(W_{t+h} - 0.2W_{t+h-2})(W_t - 0.2W_{t-2})] \\
+&= \E(W_{t+h}W_t)
+   - 0.2\E(W_{t+h}W_{t-2})
+   - 0.2\E(W_{t+h-2}W_t)
+   + 0.04\E(W_{t+h-2}W_{t-2}).
+\end{aligned}
+\]
+
+Because \(\{W_t\}\) is white noise with mean \(0\),
+\[
+\E(W_aW_b) =
+\begin{cases}
+\sigma_w^2, & a=b,\\
+0, & a \neq b.
+\end{cases}
+\]
+
+Now, let us evaluate the expression case-by-case. If \(h=0\), then
+\[
+\begin{aligned}
+\gamma_X(t,0)
+&= \E(W_t^2)
+   - 0.2\E(W_tW_{t-2})
+   - 0.2\E(W_{t-2}W_t)
+   + 0.04\E(W_{t-2}^2) \\
+&= \sigma_w^2 - 0 - 0 + 0.04\sigma_w^2 \\
+&= 1.04\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=2\), then
+\[
+\begin{aligned}
+\gamma_X(t,2)
+&= \E(W_{t+2}W_t)
+   - 0.2\E(W_{t+2}W_{t-2})
+   - 0.2\E(W_tW_t)
+   + 0.04\E(W_tW_{t-2}) \\
+&= 0 - 0 - 0.2\sigma_w^2 + 0 \\
+&= -0.2\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=-2\), then
+\[
+\begin{aligned}
+\gamma_X(t,-2)
+&= \E(W_{t-2}W_t)
+   - 0.2\E(W_{t-2}W_{t-2})
+   - 0.2\E(W_{t-4}W_t)
+   + 0.04\E(W_{t-4}W_{t-2}) \\
+&= 0 - 0.2\sigma_w^2 - 0 + 0 \\
+&= -0.2\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h \neq 0,\pm2\), then none of the time indices match, so every expectation is \(0\). Therefore,
+\[
+\gamma_X(t,h) = 0.
+\]
+
+Hence, the ACVF is
+\[
+\gamma_X(h) =
+\begin{cases}
+1.04\sigma_w^2, & h=0,\\
+-0.2\sigma_w^2, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{0,-2,2\}.
+\end{cases}
+\]
+
+This depends only on the lag \(h\), not on time \(t\).
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+Find and plot the Auto-Correlation Function (ACF).
+\end{problem}
+
+By definition,
+\[
+\rho_X(h) = \frac{\gamma_X(h)}{\gamma_X(0)}.
+\]
+Since \(\gamma_X(0)=1.04\sigma_w^2\),
+\[
+\rho_X(h) =
+\begin{cases}
+1, & h=0,\\
+\dfrac{-0.2\sigma_w^2}{1.04\sigma_w^2} = -\dfrac{0.2}{1.04} = -\dfrac{5}{26} \approx -0.1923, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{0,-2,2\}.
+\end{cases}
+\]
+
+So the ACF has one spike of height \(1\) at lag \(0\), two negative spikes of height \(-5/26 \approx -0.1923\) at lags \(-2\) and \(2\), and \(0\) at every other lag.
+
+```{r, fig.width=10, fig.height=4.5, out.width='\\linewidth'}
+# Numerical ACF values used for plotting.
+p1_lags <- -10:10
+p1_gamma_over_sigma2 <- ifelse(
+  p1_lags == 0,
+  1.04,
+  ifelse(abs(p1_lags) == 2, -0.2, 0)
+)
+p1_rho <- p1_gamma_over_sigma2 / 1.04
+
+# Plot the ACF.
+acf_stem_plot(p1_lags, p1_rho, 'Problem 1: ACF')
+```
+
+\newpage
+
+## Problem 1 (d)
+
+\begin{problem}[Problem 1 (d)]
+Is the process stationary, justify?
+\end{problem}
+
+Yes, \(\{X_t\}\) is weakly stationary because of the following:
+
+1. The mean function is independent of time:
+\[
+\mu_X(t) = 0 = \mu_X.
+\]
+
+2. The autocovariance function depends only on lag \(h\):
+\[
+\gamma_X(t,h) = \gamma_X(h) =
+\begin{cases}
+1.04\sigma_w^2, & h=0,\\
+-0.2\sigma_w^2, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{0,-2,2\}.
+\end{cases}
+\]
+
+At lag \(h=0\), the ACVF is the variance, so
+\[
+\sigma_X^2(t) = \sigma_X^2 = \gamma_X(0) = 1.04\sigma_w^2,
+\]
+which is also constant over time. Therefore, the process satisfies both conditions for weak stationarity. Hence, \(\{X_t\}\) is stationary.
+
+\newpage
+
+# Problem 2
+
+\begin{problem}[Problem 2 (30 points)]
+For the following MA process
+\[
+X_t = W_{t-1} + 2W_t + W_{t+1}
+\]
+\begin{enumerate}[label=(\alph*)]
+\item Determine its mean.
+\item Determine its Auto-Covariance Function (ACVF).
+\item Find and plot the Auto-Correlation Function (ACF).
+\item Is the process stationary, justify?
+\end{enumerate}
+\end{problem}
+
+\newpage
+
+## Problem 2 (a)
+
+\begin{problem}[Problem 2 (a)]
+Determine its mean.
+\end{problem}
+
+Using the linearity of expectation and the fact that \(\E(W_t)=0\),
+\[
+\begin{aligned}
+\E(X_t)
+&= \E(W_{t-1} + 2W_t + W_{t+1}) \\
+&= \E(W_{t-1}) + 2\E(W_t) + \E(W_{t+1}) \\
+&= 0 + 2(0) + 0 \\
+&= 0.
+\end{aligned}
+\]
+
+Hence,
+\[
+\mu_X(t) = \mu_X = 0,
+\]
+which is not a function of time \(t\).
+
+\newpage
+
+## Problem 2 (b)
+
+\begin{problem}[Problem 2 (b)]
+Determine its Auto-Covariance Function (ACVF).
+\end{problem}
+
+For all integers \(h\),
+\[
+\gamma_X(t,h) = \Cov(X_{t+h},X_t) = \E[(X_{t+h}-\mu_{t+h})(X_t-\mu_t)].
+\]
+Since \(\mu_t = \mu_{t+h} = 0\),
+\[
+\gamma_X(t,h) = \E(X_{t+h}X_t).
+\]
+Also,
+\[
+X_{t+h} = W_{t+h-1} + 2W_{t+h} + W_{t+h+1}.
+\]
+Therefore,
+\[
+\begin{aligned}
+\gamma_X(t,h)
+&= \E[(W_{t+h-1} + 2W_{t+h} + W_{t+h+1})(W_{t-1} + 2W_t + W_{t+1})] \\
+&= \E(W_{t+h-1}W_{t-1})
+ + 2\E(W_{t+h-1}W_t)
+ + \E(W_{t+h-1}W_{t+1}) \\
+&\quad + 2\E(W_{t+h}W_{t-1})
+ + 4\E(W_{t+h}W_t)
+ + 2\E(W_{t+h}W_{t+1}) \\
+&\quad + \E(W_{t+h+1}W_{t-1})
+ + 2\E(W_{t+h+1}W_t)
+ + \E(W_{t+h+1}W_{t+1}).
+\end{aligned}
+\]
+
+Again, since \(\{W_t\}\) is white noise,
+\[
+\E(W_aW_b) =
+\begin{cases}
+\sigma_w^2, & a=b,\\
+0, & a \neq b.
+\end{cases}
+\]
+
+Now evaluate case-by-case. If \(h=0\), then
+\[
+\begin{aligned}
+\gamma_X(t,0)
+&= \E(W_{t-1}^2)
+ + 2\E(W_{t-1}W_t)
+ + \E(W_{t-1}W_{t+1}) \\
+&\quad + 2\E(W_tW_{t-1})
+ + 4\E(W_t^2)
+ + 2\E(W_tW_{t+1}) \\
+&\quad + \E(W_{t+1}W_{t-1})
+ + 2\E(W_{t+1}W_t)
+ + \E(W_{t+1}^2) \\
+&= \sigma_w^2 + 0 + 0 + 0 + 4\sigma_w^2 + 0 + 0 + 0 + \sigma_w^2 \\
+&= 6\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=1\), then
+\[
+\begin{aligned}
+\gamma_X(t,1)
+&= \E(W_tW_{t-1})
+ + 2\E(W_tW_t)
+ + \E(W_tW_{t+1}) \\
+&\quad + 2\E(W_{t+1}W_{t-1})
+ + 4\E(W_{t+1}W_t)
+ + 2\E(W_{t+1}W_{t+1}) \\
+&\quad + \E(W_{t+2}W_{t-1})
+ + 2\E(W_{t+2}W_t)
+ + \E(W_{t+2}W_{t+1}) \\
+&= 0 + 2\sigma_w^2 + 0 + 0 + 0 + 2\sigma_w^2 + 0 + 0 + 0 \\
+&= 4\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=-1\), then
+\[
+\begin{aligned}
+\gamma_X(t,-1)
+&= \E(W_{t-2}W_{t-1})
+ + 2\E(W_{t-2}W_t)
+ + \E(W_{t-2}W_{t+1}) \\
+&\quad + 2\E(W_{t-1}W_{t-1})
+ + 4\E(W_{t-1}W_t)
+ + 2\E(W_{t-1}W_{t+1}) \\
+&\quad + \E(W_tW_{t-1})
+ + 2\E(W_tW_t)
+ + \E(W_tW_{t+1}) \\
+&= 0 + 0 + 0 + 2\sigma_w^2 + 0 + 0 + 0 + 2\sigma_w^2 + 0 \\
+&= 4\sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=2\), then
+\[
+\begin{aligned}
+\gamma_X(t,2)
+&= \E(W_{t+1}W_{t-1})
+ + 2\E(W_{t+1}W_t)
+ + \E(W_{t+1}W_{t+1}) \\
+&\quad + 2\E(W_{t+2}W_{t-1})
+ + 4\E(W_{t+2}W_t)
+ + 2\E(W_{t+2}W_{t+1}) \\
+&\quad + \E(W_{t+3}W_{t-1})
+ + 2\E(W_{t+3}W_t)
+ + \E(W_{t+3}W_{t+1}) \\
+&= 0 + 0 + \sigma_w^2 + 0 + 0 + 0 + 0 + 0 + 0 \\
+&= \sigma_w^2.
+\end{aligned}
+\]
+
+If \(h=-2\), then
+\[
+\begin{aligned}
+\gamma_X(t,-2)
+&= \E(W_{t-3}W_{t-1})
+ + 2\E(W_{t-3}W_t)
+ + \E(W_{t-3}W_{t+1}) \\
+&\quad + 2\E(W_{t-2}W_{t-1})
+ + 4\E(W_{t-2}W_t)
+ + 2\E(W_{t-2}W_{t+1}) \\
+&\quad + \E(W_{t-1}W_{t-1})
+ + 2\E(W_{t-1}W_t)
+ + \E(W_{t-1}W_{t+1}) \\
+&= 0 + 0 + 0 + 0 + 0 + 0 + \sigma_w^2 + 0 + 0 \\
+&= \sigma_w^2.
+\end{aligned}
+\]
+
+If \(|h|>2\), then no indices match, so every expectation is \(0\). Therefore,
+\[
+\gamma_X(t,h) = 0.
+\]
+
+Hence, the ACVF is
+\[
+\gamma_X(h) =
+\begin{cases}
+6\sigma_w^2, & h=0,\\
+4\sigma_w^2, & h=\pm1,\\
+\sigma_w^2, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{-2,-1,0,1,2\}.
+\end{cases}
+\]
+
+This depends only on the lag \(h\), not on time \(t\).
+
+\newpage
+
+## Problem 2 (c)
+
+\begin{problem}[Problem 2 (c)]
+Find and plot the Auto-Correlation Function (ACF).
+\end{problem}
+
+By definition,
+\[
+\rho_X(h) = \frac{\gamma_X(h)}{\gamma_X(0)}.
+\]
+Since \(\gamma_X(0)=6\sigma_w^2\),
+\[
+\rho_X(h) =
+\begin{cases}
+1, & h=0,\\
+\dfrac{4\sigma_w^2}{6\sigma_w^2} = \dfrac{2}{3} \approx 0.6667, & h=\pm1,\\
+\dfrac{\sigma_w^2}{6\sigma_w^2} = \dfrac{1}{6} \approx 0.1667, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{-2,-1,0,1,2\}.
+\end{cases}
+\]
+
+So the ACF has a spike of height \(1\) at lag \(0\), positive spikes of height \(2/3 \approx 0.6667\) at lags \(-1\) and \(1\), smaller positive spikes of height \(1/6 \approx 0.1667\) at lags \(-2\) and \(2\), and \(0\) at every other lag.
+
+```{r, fig.width=10, fig.height=4.5, out.width='\\linewidth'}
+# Numerical ACF values used for plotting.
+p2_lags <- -10:10
+p2_gamma_over_sigma2 <- ifelse(
+  p2_lags == 0,
+  6,
+  ifelse(abs(p2_lags) == 1, 4, ifelse(abs(p2_lags) == 2, 1, 0))
+)
+p2_rho <- p2_gamma_over_sigma2 / 6
+
+# Plot the ACF.
+acf_stem_plot(p2_lags, p2_rho, 'Problem 2: ACF')
+```
+
+\newpage
+
+## Problem 2 (d)
+
+\begin{problem}[Problem 2 (d)]
+Is the process stationary, justify?
+\end{problem}
+
+Yes, \(\{X_t\}\) is weakly stationary because of the following:
+
+1. The mean function is independent of time:
+\[
+\mu_X(t) = 0 = \mu_X.
+\]
+
+2. The autocovariance function depends only on lag \(h\):
+\[
+\gamma_X(t,h) = \gamma_X(h) =
+\begin{cases}
+6\sigma_w^2, & h=0,\\
+4\sigma_w^2, & h=\pm1,\\
+\sigma_w^2, & h=\pm2,\\
+0, & h \in \mathbb{Z}\setminus\{-2,-1,0,1,2\}.
+\end{cases}
+\]
+
+At lag \(h=0\), the ACVF is the variance, so
+\[
+\sigma_X^2(t) = \sigma_X^2 = \gamma_X(0) = 6\sigma_w^2,
+\]
+which is constant over time. Therefore, the process satisfies both conditions for weak stationarity. Hence, \(\{X_t\}\) is stationary.

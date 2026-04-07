@@ -1,0 +1,561 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Presentation 1
+author: |
+  Rento Saijo
+date: 'April 1, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.25in, bottom=1.25in, left=1.25in, right=1.25in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+---
+
+```{r, include=FALSE}
+# Set chunk defaults for a code-forward presentation file.
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+# Print a simple centered LaTeX table.
+table_latex <- function(x, digits = 3, caption = NULL, size = '\\normalsize', col_names = NULL) {
+  y <- x
+  num_cols <- sapply(y, is.numeric)
+  y[num_cols] <- lapply(y[num_cols], round, digits = digits)
+  tab <- knitr::kable(
+    y,
+    format = 'latex',
+    booktabs = TRUE,
+    caption = caption,
+    col.names = col_names,
+    align = rep('c', ncol(y)),
+    row.names = FALSE,
+    escape = FALSE
+  )
+  knitr::asis_output(
+    paste0('\\begin{center}\n', size, '\n', tab, '\n\\normalsize\n\\end{center}')
+  )
+}
+
+# Format p-values compactly in the fit table.
+format_p <- function(p, digits = 4) {
+  if (is.na(p)) {
+    return(NA_character_)
+  }
+  if (p < 10^(-digits)) {
+    return(paste0('<', format(10^(-digits), scientific = FALSE, trim = TRUE)))
+  }
+  format(round(p, digits), nsmall = digits)
+}
+```
+
+# Data Project
+
+```{r}
+# Load the regular-season EV files built for Homework 4.
+blackwood_gbgs <- utils::read.csv(
+  'data/blackwood_gbgs.csv',
+  stringsAsFactors = FALSE
+)
+shesterkin_gbgs <- utils::read.csv(
+  'data/shesterkin_gbgs.csv',
+  stringsAsFactors = FALSE
+)
+
+# Recover team EV xGA from the stored xGF% identity and then build a season-to-date cumulative xGF% series.
+add_cumulative_team_xg_pct <- function(df) {
+  df$team_xga_ev <- df$xgf_ev * (100 - df$team_xg_pct_ev) / df$team_xg_pct_ev
+  grp <- interaction(df$season, df$team_abbr, drop = TRUE)
+  df$season_cumulative_team_xg_pct_ev <- 100 *
+    ave(df$xgf_ev, grp, FUN = cumsum) /
+    (ave(df$xgf_ev, grp, FUN = cumsum) + ave(df$team_xga_ev, grp, FUN = cumsum))
+  df
+}
+
+blackwood_gbgs <- add_cumulative_team_xg_pct(blackwood_gbgs)
+shesterkin_gbgs <- add_cumulative_team_xg_pct(shesterkin_gbgs)
+
+# Use Blackwood's move to Colorado as the common forecast split.
+split_game <- min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL'])
+split_date_blackwood <- blackwood_gbgs$game_date[split_game]
+split_date_shesterkin <- shesterkin_gbgs$game_date[split_game]
+blackwood_trade_games <- blackwood_gbgs$game_number[blackwood_gbgs$team_change == 1]
+```
+
+```{r, include=FALSE}
+# Compute the raw periodogram and its dominant frequency.
+periodogram_info <- function(y) {
+  x <- y - mean(y)
+  n <- length(x)
+  I <- abs(stats::fft(x))^2 / n
+  half <- floor((n / 2) - 1)
+  f <- 0:half / n
+  P <- (4 / n) * I[1:(half + 1)]
+  dom_idx <- which.max(P[-1]) + 1
+  list(f = f, P = P, freq = f[dom_idx], period = 1 / f[dom_idx])
+}
+
+# Collect the fit criteria used in Homework 2 / Homework 4.
+fit_table <- function(fit) {
+  n <- length(stats::residuals(fit))
+  r <- length(stats::coef(fit))
+  sse <- sum(stats::residuals(fit)^2)
+  f_stats <- summary(fit)$fstatistic
+  f_p <- unname(stats::pf(f_stats[1], f_stats[2], f_stats[3], lower.tail = FALSE))
+  data.frame(
+    Parameters = r,
+    R2a = summary(fit)$adj.r.squared,
+    Fp = format_p(f_p),
+    AIC = stats::AIC(fit) / n,
+    AICC = log(sse / n) + ((n + r) / (n - r - 2)),
+    BIC = stats::AIC(fit, k = log(n)) / n,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Evaluate forecast accuracy using the Colorado split for both goalies.
+fcst_metrics <- function(data, form, split_game) {
+  train_data <- data[data$t < split_game, , drop = FALSE]
+  test_data <- data[data$t >= split_game, , drop = FALSE]
+  fit_train <- stats::lm(form, data = train_data)
+  y_hat <- stats::predict(fit_train, newdata = test_data)
+  e <- test_data$Y - y_hat
+  data.frame(
+    ME = mean(e),
+    MPE = 100 * mean(e / test_data$Y),
+    MSE = mean(e^2),
+    MAE = mean(abs(e)),
+    MAPE = 100 * mean(abs(e / test_data$Y)),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Candidate nonseasonal polynomial trend models.
+model_forms <- list(
+  'Model I' = Y ~ t,
+  'Model II' = Y ~ t + t2,
+  'Model III' = Y ~ t + t2 + t3,
+  'Model IV' = Y ~ t + t2 + t3 + t4
+)
+
+# Run the full univariate workflow for one series.
+analyze_series <- function(y, split_game) {
+  t <- seq_along(y)
+  data <- data.frame(
+    Y = y,
+    t = t,
+    t2 = t^2 / factorial(2),
+    t3 = t^3 / factorial(3),
+    t4 = t^4 / factorial(4)
+  )
+  fits <- lapply(model_forms, function(form) stats::lm(form, data = data))
+  fit_df <- do.call(
+    rbind,
+    lapply(names(fits), function(name) {
+      out <- cbind(Model = name, fit_table(fits[[name]]))
+      rownames(out) <- name
+      out
+    })
+  )
+  fc_df <- do.call(
+    rbind,
+    lapply(names(model_forms), function(name) {
+      out <- cbind(Model = name, fcst_metrics(data, model_forms[[name]], split_game = split_game))
+      rownames(out) <- name
+      out
+    })
+  )
+  fit_df$Parameters <- as.integer(fit_df$Parameters)
+  list(
+    period = periodogram_info(y),
+    fits = fits,
+    fit_table = fit_df,
+    fc_table = fc_df,
+    data = data
+  )
+}
+
+# Run the workflow for the two cumulative series used in the presentation.
+analyze_goalie <- function(df, split_game) {
+  list(
+    cumulative_gsax_ev = analyze_series(df$cumulative_gsax_ev, split_game = split_game),
+    season_cumulative_team_xg_pct_ev = analyze_series(df$season_cumulative_team_xg_pct_ev, split_game = split_game)
+  )
+}
+
+blackwood_analysis <- analyze_goalie(blackwood_gbgs, split_game = split_game)
+shesterkin_analysis <- analyze_goalie(shesterkin_gbgs, split_game = split_game)
+
+# Final model choices under the Colorado forecast split.
+selected_models <- list(
+  blackwood = c(
+    cumulative_gsax_ev = 'Model III',
+    season_cumulative_team_xg_pct_ev = 'Model I'
+  ),
+  shesterkin = c(
+    cumulative_gsax_ev = 'Model IV',
+    season_cumulative_team_xg_pct_ev = 'Model III'
+  )
+)
+
+blackwood_selected <- list(
+  cumulative_gsax_ev = blackwood_analysis$cumulative_gsax_ev$fits[[selected_models$blackwood['cumulative_gsax_ev']]],
+  season_cumulative_team_xg_pct_ev = blackwood_analysis$season_cumulative_team_xg_pct_ev$fits[[selected_models$blackwood['season_cumulative_team_xg_pct_ev']]]
+)
+shesterkin_selected <- list(
+  cumulative_gsax_ev = shesterkin_analysis$cumulative_gsax_ev$fits[[selected_models$shesterkin['cumulative_gsax_ev']]],
+  season_cumulative_team_xg_pct_ev = shesterkin_analysis$season_cumulative_team_xg_pct_ev$fits[[selected_models$shesterkin['season_cumulative_team_xg_pct_ev']]]
+)
+
+# Convert a fitted model into a compact displayed equation.
+model_equation <- function(fit, response_symbol, digits = 6) {
+  coeffs <- stats::coef(fit)
+  term_labels <- c(
+    '(Intercept)' = '',
+    't' = 't',
+    't2' = '\\frac{t^2}{2!}',
+    't3' = '\\frac{t^3}{3!}',
+    't4' = '\\frac{t^4}{4!}'
+  )
+  fmt <- function(x) format(round(x, digits), nsmall = digits)
+  eq <- paste0('\\widehat{', response_symbol, '}_t = ', fmt(coeffs[1]))
+  if (length(coeffs) > 1) {
+    for (nm in names(coeffs)[-1]) {
+      sign <- if (coeffs[nm] >= 0) '+' else '-'
+      eq <- paste(eq, sign, fmt(abs(coeffs[nm])), term_labels[[nm]])
+    }
+  }
+  eq
+}
+
+# Add the Blackwood franchise-change markers to a cumulative plot.
+add_blackwood_trade_markers <- function(y) {
+  graphics::abline(v = blackwood_trade_games, col = 'black', lty = 3, lwd = 3)
+}
+```
+
+My data project asks whether a goalie’s goals saved above expected, or GSAx, is really as team-independent as it is often treated in hockey analysis. GSAx is supposed to be fairer than raw save percentage or goals against because it adjusts for shot quality, so a goalie is rewarded for stopping dangerous chances and penalized more for allowing easier ones. I want to test that claim by comparing Mackenzie Blackwood, whose team environment changed substantially across New Jersey, San Jose, and Colorado, with Igor Shesterkin, who stayed with the Rangers. The question is not whether team context is the only driver of goalie results, since progression, injury, fatigue, and confidence can matter too, but whether GSAx behaves differently when one goalie changes franchises and the other does not.
+
+I study both goalies game by game at even strength and keep only regular-season games, that is, `gameTypeId = 2`, or equivalently `gameId` values whose middle two digits are `02`. After filtering to complete even-strength regular-season records, I match both goalies to the first `r nrow(blackwood_gbgs)` career games, so for each goalie \(t = 1, 2, \ldots, `r nrow(blackwood_gbgs)`\). Blackwood’s sample runs from `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)` and includes `r sum(blackwood_gbgs$team_abbr == 'NJD')` games with New Jersey, `r sum(blackwood_gbgs$team_abbr == 'SJS')` with San Jose, and `r sum(blackwood_gbgs$team_abbr == 'COL')` with Colorado. Shesterkin’s matched sample runs from `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)` and all `r nrow(shesterkin_gbgs)` games are with the Rangers.
+
+The raw NHL event and report data come from my `nhlscraper` pipeline, but the expected-goals layer used here is my own `rentosrink` model rather than a direct package output. The model and deployment logic are documented at \href{https://rentosrink.streamlit.app/expected_goal}{\texttt{rentosrink.streamlit.app}} and in \href{https://github.com/RentoSaijo/rentosrink/blob/main/views/expected_goal.py}{\texttt{rentosrink/views/expected\_goal.py}}, while the game-by-game files are described in the \href{https://github.com/RentoSaijo/rentosrink/blob/main/scripts/gbgs/codebook.md}{\texttt{GBG codebook}}. Because this project is even-strength only, the relevant 2025--26 unseen-future validation is the even-strength partitions: the Standard 5v5 `sd1` model achieved log loss \(= 0.1926\), Brier score \(= 0.0522\), ROC AUC \(= 0.8038\), and calibration ratio \(= 1.0477\), while the Non-Standard Even Strength `ev2` model achieved log loss \(= 0.2986\), Brier score \(= 0.0853\), ROC AUC \(= 0.7365\), and calibration ratio \(= 1.1595\). These results support using the xG-based variables here, although the model is still incomplete because public data do not provide full pre-shot pass tracking or all off-puck context.
+
+The final analysis files are \href{https://github.com/RentoSaijo/STA209/blob/main/data/blackwood_gbgs.csv}{\texttt{STA209/data/blackwood\_gbgs.csv}} and \href{https://github.com/RentoSaijo/STA209/blob/main/data/shesterkin_gbgs.csv}{\texttt{STA209/data/shesterkin\_gbgs.csv}}, built by filtering the `rentosrink` goalie and team game-by-game tables in \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/basic}{\texttt{rentosrink/data/gbgs/basic}} and \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/advanced}{\texttt{rentosrink/data/gbgs/advanced}} to player ids `8478406` and `8478048`, merging the relevant goalie and team files by game and team, joining team names from \href{https://github.com/RentoSaijo/rentosrink/blob/main/data/teams.csv}{\texttt{rentosrink/data/teams.csv}}, and keeping the even-strength columns only. The identifier variables are `game_number`, `game_date`, `season`, `team_id`, `team_abbr`, `team_name`, `game_id`, `player_id`, and `team_change`; the main hockey variables are `shots_against_ev`, `goals_against_ev`, `xga_ev`, `xgf_ev`, `sv_pct_ev`, `gsax_ev`, `cumulative_gsax_ev`, and `cumulative_sv_pct_ev`. The main derived team-context variable used in this presentation is
+\[
+\texttt{season\_cumulative\_team\_xg\_pct\_ev,t} =
+100 \times
+\frac{\sum_{j=\tau(t)}^{t} \texttt{xgf\_ev,j}}
+{\sum_{j=\tau(t)}^{t} \texttt{xgf\_ev,j} + \sum_{j=\tau(t)}^{t} \texttt{team\_xga\_ev,j}},
+\]
+where \(\tau(t)\) is the first game in that goalie-team-season segment. So this is the team’s season-to-date even-strength xGF\% at the time of each goalie game, not a goalie-career cumulative quantity. For this presentation, I focus on the two cumulative series `cumulative_gsax_ev` and `season_cumulative_team_xg_pct_ev` because they compare long-run goalie results with the team environment the goalie is playing in at that point of the season.
+
+- The first article is Lignell, Rago, and Mohr (2020), “Analysis of goal scoring opportunities in elite male ice hockey in relation to tactical and contextual variables,” \textit{International Journal of Performance Analysis in Sport}, 20(6), 1003--1017, \href{https://doi.org/10.1080/24748668.2020.1823161}{https://doi.org/10.1080/24748668.2020.1823161}. This article is directly relevant because it is hockey-specific and shows that the probability of scoring is affected by tactical and contextual variables, not just by a shooter-goalie duel in isolation, which supports the idea that a goalie’s environment may matter when we interpret a metric like GSAx.
+- The second article is Mead, O’Hare, and McMenemy (2023), “Expected goals in football: Improving model performance and demonstrating value,” \textit{PLOS ONE}, 18(4), e0282295, \href{https://doi.org/10.1371/journal.pone.0282295}{https://doi.org/10.1371/journal.pone.0282295}. Even though it is soccer rather than hockey, it is still very relevant because it shows that expected-goals style process measures outperform traditional shot and goal counts for prediction and evaluation, which supports using xG-based context variables instead of relying only on goals against or wins.
+- The third article is De-la-Cruz-Torres, Navarro-Castro, and Ruiz-de-Alarcón-Quintero (2025), “An Expected Goals On Target (xGOT) Model: Accounting for Goalkeeper Performance in Football,” \textit{Big Data and Cognitive Computing}, 9(3), 64, \href{https://doi.org/10.3390/bdcc9030064}{https://doi.org/10.3390/bdcc9030064}. This article matters because it argues that traditional shot models often overlook the goalkeeper’s contribution and proposes an explicitly goalkeeper-aware post-shot model, which is conceptually close to my question because GSAx is also supposed to isolate goalie performance from chance quality.
+
+All in all, these three articles support the importance of my project from three directions: hockey chances are shaped by context, xG-type process metrics are valuable for performance evaluation, and goalkeeper evaluation is strongest when the model takes both chance quality and the keeper’s contribution seriously rather than assuming independence by default. They also justify the comparison between Blackwood and Shesterkin, because that design lets me look at one goalie under major team changes and another under relative organizational continuity without leaving the broader question of context-adjusted goalie evaluation.
+
+# Mackenzie Blackwood
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Plot the two cumulative Blackwood series and mark both franchise changes.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(2, 1), cex.main = 0.95)
+astsa::tsplot(
+  stats::ts(blackwood_gbgs$cumulative_gsax_ev, start = 1, frequency = 1),
+  main = 'Blackwood: Cumulative GSAx',
+  xlab = 'Career Game Number (t)',
+  ylab = 'Cumulative GSAx at EV (Goals)',
+  col = 'darkgreen',
+  lwd = 2
+)
+add_blackwood_trade_markers(blackwood_gbgs$cumulative_gsax_ev)
+
+astsa::tsplot(
+  stats::ts(blackwood_gbgs$season_cumulative_team_xg_pct_ev, start = 1, frequency = 1),
+  main = 'Blackwood: Team Season-Cumulative xGF%',
+  xlab = 'Career Game Number (t)',
+  ylab = 'Season Cumulative Team xGF% at EV',
+  col = 'navy',
+  lwd = 2
+)
+add_blackwood_trade_markers(blackwood_gbgs$season_cumulative_team_xg_pct_ev)
+```
+
+```{r, fig.width=10, fig.height=6, out.width='\\linewidth'}
+# Plot the two Blackwood periodograms used to assess seasonality.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(1, 2), cex.main = 0.82)
+for (nm in c('cumulative_gsax_ev', 'season_cumulative_team_xg_pct_ev')) {
+  info <- blackwood_analysis[[nm]]$period
+  title_text <- switch(
+    nm,
+    cumulative_gsax_ev = 'Blackwood: Periodogram\nCumulative GSAx',
+    season_cumulative_team_xg_pct_ev = 'Blackwood: Periodogram\nTeam Season-Cumulative xGF%'
+  )
+  graphics::plot(
+    info$f,
+    info$P,
+    type = 'l',
+    main = title_text,
+    xlab = 'Frequency',
+    ylab = 'P(frequency)',
+    col = 'navy',
+    lwd = 2
+  )
+  graphics::abline(v = info$freq, col = 'red', lty = 2, lwd = 2)
+}
+```
+
+For Blackwood, neither cumulative series shows convincing seasonality. The `cumulative_gsax_ev` periodogram has a very large spike extremely close to frequency 0, with dominant frequency \(f = `r round(blackwood_analysis$cumulative_gsax_ev$period$freq, 6)`\) and implied period about `r round(blackwood_analysis$cumulative_gsax_ev$period$period, 1)` games, so it reflects long-run trend rather than a repeating seasonal cycle. The `season_cumulative_team_xg_pct_ev` periodogram peaks at frequency \(f = `r round(blackwood_analysis$season_cumulative_team_xg_pct_ev$period$freq, 6)`\), which corresponds to about `r round(blackwood_analysis$season_cumulative_team_xg_pct_ev$period$period, 1)` games, but that peak is not isolated enough from the rest of the spectrum to support harmonics. Since the team xGF\% series also resets within each season-team segment, its shape is better interpreted as season-to-date team environment rather than a stable repeating cycle. So for Blackwood, I keep only nonseasonal polynomial trend models.
+
+The candidate models for both cumulative Blackwood series are
+\[
+\begin{aligned}
+\text{Model I: } & Y_t = \beta_0 + \beta_1 t + W_t, \\
+\text{Model II: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + W_t, \\
+\text{Model III: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + W_t, \\
+\text{Model IV: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 \frac{t^4}{4!} + W_t.
+\end{aligned}
+\]
+
+## Blackwood: Cumulative GSAx
+
+```{r, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_analysis$cumulative_gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+
+table_latex(
+  blackwood_analysis$cumulative_gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+Blackwood’s `cumulative_gsax_ev` selects Model III under the Colorado split. Model IV has the best in-sample criteria, but Model III forecasts the Colorado segment much better, with far smaller holdout MSE and MAE. The fitted model is
+\[
+`r model_equation(blackwood_selected$cumulative_gsax_ev, 'CG')`
+\]
+where \(CG_t\) is Blackwood’s cumulative even-strength GSAx in goals.
+
+## Blackwood: Season Cumulative Team xGF%
+
+```{r, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_analysis$season_cumulative_team_xg_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+
+table_latex(
+  blackwood_analysis$season_cumulative_team_xg_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+Blackwood’s `season_cumulative_team_xg_pct_ev` selects Model I for forecasting. The higher-order models fit the full sample better, but once the holdout is defined by the Colorado trade, the linear model gives the smallest holdout MSE and MAE by a clear margin. The fitted model is
+\[
+`r model_equation(blackwood_selected$season_cumulative_team_xg_pct_ev, 'CX')`
+\]
+where \(CX_t\) is Blackwood’s season-to-date team even-strength xGF\%.
+
+# Igor Shesterkin
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Plot the two cumulative Shesterkin series.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(2, 1), cex.main = 0.95)
+astsa::tsplot(
+  stats::ts(shesterkin_gbgs$cumulative_gsax_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: Cumulative GSAx',
+  xlab = 'Career Game Number (t)',
+  ylab = 'Cumulative GSAx at EV (Goals)',
+  col = 'darkgreen',
+  lwd = 2
+)
+
+astsa::tsplot(
+  stats::ts(shesterkin_gbgs$season_cumulative_team_xg_pct_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: Team Season-Cumulative xGF%',
+  xlab = 'Career Game Number (t)',
+  ylab = 'Season Cumulative Team xGF% at EV',
+  col = 'navy',
+  lwd = 2
+)
+```
+
+```{r, fig.width=10, fig.height=6, out.width='\\linewidth'}
+# Plot the two Shesterkin periodograms.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(1, 2), cex.main = 0.82)
+for (nm in c('cumulative_gsax_ev', 'season_cumulative_team_xg_pct_ev')) {
+  info <- shesterkin_analysis[[nm]]$period
+  title_text <- switch(
+    nm,
+    cumulative_gsax_ev = 'Shesterkin: Periodogram\nCumulative GSAx',
+    season_cumulative_team_xg_pct_ev = 'Shesterkin: Periodogram\nTeam Season-Cumulative xGF%'
+  )
+  graphics::plot(
+    info$f,
+    info$P,
+    type = 'l',
+    main = title_text,
+    xlab = 'Frequency',
+    ylab = 'P(frequency)',
+    col = 'navy',
+    lwd = 2
+  )
+  graphics::abline(v = info$freq, col = 'red', lty = 2, lwd = 2)
+}
+```
+
+For Shesterkin, the same conclusion holds: there is no convincing seasonality in either cumulative series. The `cumulative_gsax_ev` periodogram again has its strongest spike extremely close to frequency 0, while the `season_cumulative_team_xg_pct_ev` periodogram has its strongest peak at frequency \(f = `r round(shesterkin_analysis$season_cumulative_team_xg_pct_ev$period$freq, 6)`\), corresponding to about `r round(shesterkin_analysis$season_cumulative_team_xg_pct_ev$period$period, 1)` games. That peak is not cleanly separated enough from the surrounding spectrum to justify harmonics, and the season-to-date construction itself creates broad low-frequency structure rather than a clean repeating cycle. So I again keep only nonseasonal polynomial trend models.
+
+## Shesterkin: Cumulative GSAx
+
+```{r, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_analysis$cumulative_gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+
+table_latex(
+  shesterkin_analysis$cumulative_gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+Shesterkin’s `cumulative_gsax_ev` selects Model IV. Here the quartic model is favored by the in-sample criteria and also by the aligned holdout MSE and MAE, so the model choice is cleaner than it is for Blackwood. The fitted model is
+\[
+`r model_equation(shesterkin_selected$cumulative_gsax_ev, 'CG')`
+\]
+where \(CG_t\) is Shesterkin’s cumulative even-strength GSAx in goals.
+
+## Shesterkin: Season Cumulative Team xGF%
+
+```{r, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_analysis$season_cumulative_team_xg_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+
+table_latex(
+  shesterkin_analysis$season_cumulative_team_xg_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+Shesterkin’s `season_cumulative_team_xg_pct_ev` selects Model III. Model IV has the best in-sample criteria, but Model III gives the smallest holdout MSE and MAE, so it is the better practical forecasting choice under the aligned split. The fitted model is
+\[
+`r model_equation(shesterkin_selected$season_cumulative_team_xg_pct_ev, 'CX')`
+\]
+where \(CX_t\) is Shesterkin’s season-to-date team even-strength xGF\%.
+
+# Preliminary Conclusion
+
+These results are only preliminary, but they already suggest a useful contrast. For both goalies, cumulative GSAx requires a curved trend, while the season-to-date team xGF\% series is more tied to within-season team environment and resets when a new season or team segment begins. Relative to Shesterkin’s steadier one-team path, Blackwood’s cumulative GSAx is more visibly shaped by franchise changes, and the Colorado split materially affects which cumulative GSAx model forecasts best. So at this stage, the presentation evidence does not prove that GSAx is fully team-independent; instead, it suggests that long-run goalie results and season-level team environment can evolve differently across the two goalies, especially when one goalie experiences major franchise changes and the other does not.

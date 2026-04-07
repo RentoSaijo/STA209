@@ -5,7 +5,7 @@ subtitle: |
   Homework 4
 author: |
   Rento Saijo
-date: 'March 30, 2026'
+date: 'April 1, 2026'
 fontsize: 10pt
 documentclass: extarticle
 geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
@@ -143,7 +143,7 @@ table_latex <- function(x, digits = 3, caption = NULL, size = '\\normalsize', co
 
 # Disclosure
 
-GPT-5.4 Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework4.Rmd) for more details. Please ignore Problem 2 for this submission.
+GPT-5.4 Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework4.Rmd) for more details.
 
 \newpage
 
@@ -321,69 +321,27 @@ For your data analysis project, do the following.
 \end{problem}
 
 ```{r}
-# Load the curated data-project file.
+# Load the curated data project files.
 blackwood_gbgs <- utils::read.csv(
   'data/blackwood_gbgs.csv',
   stringsAsFactors = FALSE
 )
+shesterkin_gbgs <- utils::read.csv(
+  'data/shesterkin_gbgs.csv',
+  stringsAsFactors = FALSE
+)
 ```
 
-\newpage
-
-## Problem 2 (a)
-
-\begin{problem}[Problem 2 (a)]
-Introduce your data project problem in detail explaining research goals clearly. Share your data in detail with all variables, source, and how this data was selected (that us why not another dataset).
-\end{problem}
-
-My data-analysis project asks whether a goalie’s goals saved above expected, or GSAx, is really as team-independent as it is often treated in hockey analysis. The usual appeal of GSAx is that it seems fairer than raw save percentage or goals against because it does not treat all shots as equal; instead, it rewards a goalie for stopping dangerous chances and penalizes him more for allowing them, so in principle it already adjusts for the playing conditions his team gives him. I want to challenge that interpretation rather than simply accept it. My question is whether a goalie’s game-by-game GSAx still moves in meaningful ways with team circumstances such as how much expected offense his team creates, how much expected danger it allows, and how much volume he faces. At the same time, I do not want to overstate the claim, because goalie performance can also vary for reasons that are not fully captured by team context, including natural progression or regression over a career, injury or recovery, confidence and mental state, fatigue, or back-to-back scheduling. So the project is not asking whether team context is the only driver of GSAx; it is asking whether team context still appears related to a metric that is usually advertised as already context-adjusted.
-
-I will study Mackenzie Blackwood’s NHL regular-season career game by game, using \(t\) as career game number so that \(t = 1, 2, \ldots, `r nrow(blackwood_gbgs)`\), where \(t=1\) corresponds to `r min(blackwood_gbgs$game_date)` and \(t=`r nrow(blackwood_gbgs)`\) corresponds to `r max(blackwood_gbgs$game_date)`. This version of the project is restricted to even strength, so every hockey variable in the final file is built from the GBG `_ev` fields rather than all-situations totals. I chose this dataset because it keeps the subject fixed to one goalie, which keeps the project simple, but it still contains natural changes in team environment through Blackwood’s moves from the New Jersey Devils to the San Jose Sharks and then to the Colorado Avalanche. In the final curated file, he has `r sum(blackwood_gbgs$team_abbr == 'NJD')` games with New Jersey, `r sum(blackwood_gbgs$team_abbr == 'SJS')` games with San Jose, and `r sum(blackwood_gbgs$team_abbr == 'COL')` games with Colorado, so the same goalie can be observed across multiple team contexts rather than comparing many different goalies at once.
-
-The raw NHL event and report data in my broader pipeline do start with my `nhlscraper` package through functions such as `nhlscraper::games()`, `nhlscraper::goalie_game_report()`, `nhlscraper::gc_pbps()`, and `nhlscraper::shift_charts()`, but the expected-goals layer used here is not merely a direct `nhlscraper` output. In `rentosrink`, I build my own xG pipeline on top of those inputs. The current model and deployment logic are described in the live Streamlit model page at \href{https://rentosrink.streamlit.app/}{\texttt{rentosrink.streamlit.app}} and in the source file \href{https://github.com/RentoSaijo/rentosrink/blob/main/views/expected_goal.py}{\texttt{rentosrink/views/expected\_goal.py}}. The advanced game-by-game files used here are described in the GBG codebook at \href{https://github.com/RentoSaijo/rentosrink/blob/main/scripts/gbgs/codebook.md}{\texttt{rentosrink/scripts/gbgs/codebook.md}}, which states that advanced GBGs are built from the SBS/xG pipeline rather than from raw reports alone.
-
-Because this project is restricted to even-strength data, the relevant 2025--26 unseen-future xG validation is the two even-strength partitions rather than an all-situations aggregate. For Standard 5v5, the deployed `sd1` XGBoost model achieved log loss \(= 0.1926\), Brier score \(= 0.0522\), ROC AUC \(= 0.8038\), and calibration ratio \(= 1.0477\). For Non-Standard Even Strength, the deployed `ev2` LightGBM model achieved log loss \(= 0.2986\), Brier score \(= 0.0853\), ROC AUC \(= 0.7365\), and calibration ratio \(= 1.1595\). Those numbers matter here because my project depends on the quality of the xG estimates that feed the even-strength variables `xga_ev`, `xgf_ev`, `gsax_ev`, and `team_xg_pct_ev`; if the xG model were poor, then the entire goalie-context question would be much weaker. At the same time, even a strong public xG model is still incomplete. In particular, the public NHL event data do not provide full pass-tracking information, so my public xG models still cannot fully account for detailed pre-shot passing structure, deception, or some off-puck context. That means if team-context variables still show a relationship with GSAx, the project may reveal not only genuine team influence on goalie results, but also what the current public xG framework is still missing.
-
-The final project file was created by filtering the `rentosrink` goalie and team game-by-game tables in \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/basic}{\texttt{rentosrink/data/gbgs/basic}} and \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/advanced}{\texttt{rentosrink/data/gbgs/advanced}} to Blackwood’s player id `8478406`, merging the goalie basic, goalie advanced, and team advanced files by game and team, joining team names from \href{https://github.com/RentoSaijo/rentosrink/blob/main/data/teams.csv}{\texttt{rentosrink/data/teams.csv}}, and keeping the even-strength columns only. The final analysis file \href{https://github.com/RentoSaijo/STA209/blob/main/data/blackwood_gbgs.csv}{\texttt{STA209/data/blackwood\_gbgs.csv}} therefore contains `r nrow(blackwood_gbgs)` complete observations.
-
-The identifier and indexing variables are `game_number`, which is the time index \(t\); `game_date`, the calendar date of the game; `season`, the NHL season id; `team_id`, `team_abbr`, and `team_name`, which identify Blackwood’s team in that game; `game_id` and `player_id`; and `team_change`, an indicator for the first game after a franchise change. The hockey performance variables are `shots_against_ev`, `goals_against_ev`, `xga_ev`, `xgf_ev`, `sv_pct_ev`, `gsax_ev`, `cumulative_gsax_ev`, and `cumulative_sv_pct_ev`. The main derived team-context variable is
-\[
-\texttt{team\_xg\_pct\_ev} = 100 \times \frac{\texttt{xgf\_ev}}{\texttt{xgf\_ev} + \texttt{xga\_ev}},
-\]
-which is the team even-strength expected-goal share percentage.
-
-For the actual analysis, I use `cumulative_gsax_ev` as the response series and consider `gsax_ev`, `sv_pct_ev`, and `team_xg_pct_ev` as the main explanatory series. I chose this dataset instead of a larger multi-goalie panel because the assignment is easier to execute well with one clearly defined time series, and Blackwood is a good case because he has enough games, multiple team contexts, and an immediately interpretable hockey question.
-
-\newpage
-
-## Problem 2 (b)
-
-\begin{problem}[Problem 2 (b)]
-Find three journal articles on the research topic of your interest (called background research) using Google Scholar and OneSearch to support the relevance and importance of the research questions you are exploring. Cite the background research you did and share a summary.
-\end{problem}
-
-Using Google Scholar and OneSearch, I focused on journal articles that support three separate parts of my project question: whether hockey scoring environments are context-dependent, whether expected-goals style process metrics are more informative than raw results, and whether goalkeeper-specific shot models should explicitly account for the keeper rather than treating all context as external.
-
-- The first article is Lignell, Rago, and Mohr (2020), “Analysis of goal scoring opportunities in elite male ice hockey in relation to tactical and contextual variables,” \textit{International Journal of Performance Analysis in Sport}, 20(6), 1003--1017, \href{https://doi.org/10.1080/24748668.2020.1823161}{https://doi.org/10.1080/24748668.2020.1823161}. This article is directly relevant because it is hockey-specific and shows that the probability of scoring is affected by tactical and contextual variables, not just by a shooter-goalie duel in isolation, which supports the idea that a goalie’s environment may matter when we interpret a metric like GSAx.
-- The second article is Mead, O’Hare, and McMenemy (2023), “Expected goals in football: Improving model performance and demonstrating value,” \textit{PLOS ONE}, 18(4), e0282295, \href{https://doi.org/10.1371/journal.pone.0282295}{https://doi.org/10.1371/journal.pone.0282295}. Even though it is soccer rather than hockey, it is still very relevant because it shows that expected-goals style process measures outperform traditional shot and goal counts for prediction and evaluation, which supports using xG-based team-context variables instead of relying only on goals against or wins.
-- The third article is De-la-Cruz-Torres, Navarro-Castro, and Ruiz-de-Alarcón-Quintero (2025), “An Expected Goals On Target (xGOT) Model: Accounting for Goalkeeper Performance in Football,” \textit{Big Data and Cognitive Computing}, 9(3), 64, \href{https://doi.org/10.3390/bdcc9030064}{https://doi.org/10.3390/bdcc9030064}. This article matters because it argues that traditional shot models often overlook the goalkeeper’s contribution and proposes an explicitly goalkeeper-aware post-shot model, which is conceptually close to my question because GSAx is also supposed to isolate goalie performance from chance quality.
-
-Taken together, these three articles support the importance of my project from three directions: hockey chances are shaped by context, xG-type process metrics are valuable for performance evaluation, and goalkeeper evaluation is strongest when the model takes both chance quality and the keeper’s contribution seriously rather than assuming independence by default.
-
-\newpage
-## Problem 2 (c)
-
-\begin{problem}[Problem 2 (c)]
-For each variable, show time series plots (you can do multiple plots on the same slide) and comment on its main features (trend, seasonality, range, volatile, heteroscedasticity). Model the trend and seasonality of all variables (at least three) using techniques learned in the class and report the best model justifying their performance using all methods learned in class. Make a summary table comparing adjusted \(R^2\), F-test, likelihood-based criteria, and forecast evaluation criteria. For seasonality, make a periodogram of your response variable (one time series) and see if there is any seasonality in the data.
-\end{problem}
-
-For this part, I focus on `cumulative_gsax_ev`, which is Blackwood’s cumulative even-strength goals saved above expected. The other three series I use alongside it are `gsax_ev`, the game-by-game even-strength GSAx series, `sv_pct_ev`, the game-by-game even-strength save-percentage series, and `team_xg_pct_ev`, the team even-strength expected-goal share percentage. The time variable is the career game index \(t\), measured in games, with one observation per game from \(t=1\) on `r min(blackwood_gbgs$game_date)` through \(t=`r nrow(blackwood_gbgs)`\) on `r max(blackwood_gbgs$game_date)`.
-
-For forecast evaluation, I use Blackwood’s move to Colorado as the forecasting cutoff, so the training sample is the pre-Colorado period \(t=1,\ldots,`r min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL']) - 1`\) and the holdout sample is the Colorado period \(t=`r min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL'])`,\ldots,`r nrow(blackwood_gbgs)`\), beginning on `r blackwood_gbgs$game_date[min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL'])]`. This is a meaningful cutoff because it tests whether a model fit on Blackwood’s pre-Colorado career carries into a new team environment.
-
-```{r}
-# Setup for the cumulative GSAx analysis.
-split_game <- min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL'])
+```{r, include=FALSE}
+format_p <- function(p, digits = 4) {
+  if (is.na(p)) {
+    return(NA_character_)
+  }
+  if (p < 10^(-digits)) {
+    return(paste0('<', format(10^(-digits), scientific = FALSE, trim = TRUE)))
+  }
+  format(round(p, digits), nsmall = digits)
+}
 
 periodogram_info <- function(y) {
   x <- y - mean(y)
@@ -396,91 +354,205 @@ periodogram_info <- function(y) {
   list(f = f, P = P, freq = f[dom_idx], period = 1 / f[dom_idx])
 }
 
-acf_table <- function(x, lag.max = 8) {
-  ac <- stats::acf(as.numeric(x), lag.max = lag.max, plot = FALSE)
-  data.frame(lag = as.numeric(ac$lag)[-1], acf = as.numeric(ac$acf)[-1])
-}
-
-ccf_table <- function(x, y, lag.max = 8) {
-  cc <- stats::ccf(as.numeric(x), as.numeric(y), lag.max = lag.max, plot = FALSE)
-  data.frame(lag = as.numeric(cc$lag), acf = as.numeric(cc$acf))
-}
-
-neg_lag_peak <- function(tbl) {
-  tbl <- tbl[tbl$lag < 0, , drop = FALSE]
-  tbl[which.max(abs(tbl$acf)), ]
-}
-
-fit_table_proj <- function(fit) {
+fit_table <- function(fit) {
   n <- length(stats::residuals(fit))
   r <- length(stats::coef(fit))
   sse <- sum(stats::residuals(fit)^2)
   f_stats <- summary(fit)$fstatistic
-  f_p <- stats::pf(f_stats[1], f_stats[2], f_stats[3], lower.tail = FALSE)
+  f_p <- unname(stats::pf(f_stats[1], f_stats[2], f_stats[3], lower.tail = FALSE))
   data.frame(
     Parameters = r,
     R2a = summary(fit)$adj.r.squared,
-    Fp = f_p,
+    Fp = format_p(f_p),
     AIC = stats::AIC(fit) / n,
     AICC = log(sse / n) + ((n + r) / (n - r - 2)),
     BIC = stats::AIC(fit, k = log(n)) / n,
-    row.names = NULL
+    stringsAsFactors = FALSE
   )
 }
 
-fcst_metrics_proj <- function(data, form) {
+split_game <- min(blackwood_gbgs$game_number[blackwood_gbgs$team_abbr == 'COL'])
+
+fcst_metrics <- function(data, form, split_game) {
   train_data <- data[data$t < split_game, , drop = FALSE]
   test_data <- data[data$t >= split_game, , drop = FALSE]
   fit_train <- stats::lm(form, data = train_data)
   y_hat <- stats::predict(fit_train, newdata = test_data)
-  e <- test_data$H - y_hat
+  e <- test_data$Y - y_hat
   data.frame(
     ME = mean(e),
-    MPE = 100 * mean(e / test_data$H),
+    MPE = 100 * mean(e / test_data$Y),
     MSE = mean(e^2),
     MAE = mean(abs(e)),
-    MAPE = 100 * mean(abs(e / test_data$H)),
-    row.names = NULL
+    MAPE = 100 * mean(abs(e / test_data$Y)),
+    stringsAsFactors = FALSE
   )
 }
 
-H <- stats::ts(blackwood_gbgs$cumulative_gsax_ev, start = 1, frequency = 1)
-G <- stats::ts(blackwood_gbgs$gsax_ev, start = 1, frequency = 1)
-S <- stats::ts(blackwood_gbgs$sv_pct_ev, start = 1, frequency = 1)
-X <- stats::ts(blackwood_gbgs$team_xg_pct_ev, start = 1, frequency = 1)
-t <- stats::ts(1:length(H), start = 1, frequency = 1)
-t2 <- stats::ts((1:length(H))^2 / factorial(2), start = 1, frequency = 1)
-t3 <- stats::ts((1:length(H))^3 / factorial(3), start = 1, frequency = 1)
-
-gsax_data <- stats::ts.intersect(
-  H = H,
-  t = t,
-  t2 = t2,
-  t3 = t3,
-  GL3 = stats::lag(G, -3),
-  SL3 = stats::lag(S, -3),
-  dframe = TRUE
+model_forms <- list(
+  'Model I' = Y ~ t,
+  'Model II' = Y ~ t + t2,
+  'Model III' = Y ~ t + t2 + t3,
+  'Model IV' = Y ~ t + t2 + t3 + t4
 )
 
-gsax_period <- periodogram_info(blackwood_gbgs$cumulative_gsax_ev)
-h_acf_tbl <- acf_table(blackwood_gbgs$cumulative_gsax_ev)
-g_ccf_tbl <- ccf_table(blackwood_gbgs$gsax_ev, blackwood_gbgs$cumulative_gsax_ev)
-s_ccf_tbl <- ccf_table(blackwood_gbgs$sv_pct_ev, blackwood_gbgs$cumulative_gsax_ev)
-x_ccf_tbl <- ccf_table(blackwood_gbgs$team_xg_pct_ev, blackwood_gbgs$cumulative_gsax_ev)
+analyze_series <- function(y, split_game) {
+  t <- seq_along(y)
+  data <- data.frame(
+    Y = y,
+    t = t,
+    t2 = t^2 / factorial(2),
+    t3 = t^3 / factorial(3),
+    t4 = t^4 / factorial(4)
+  )
+  fits <- lapply(model_forms, function(form) stats::lm(form, data = data))
+  fit_df <- do.call(
+    rbind,
+    lapply(names(fits), function(name) {
+      out <- cbind(Model = name, fit_table(fits[[name]]))
+      rownames(out) <- name
+      out
+    })
+  )
+  fc_df <- do.call(
+    rbind,
+    lapply(names(model_forms), function(name) {
+      out <- cbind(Model = name, fcst_metrics(data, model_forms[[name]], split_game = split_game))
+      rownames(out) <- name
+      out
+    })
+  )
+  fit_df$Parameters <- as.integer(fit_df$Parameters)
+  list(
+    period = periodogram_info(y),
+    fits = fits,
+    fit_table = fit_df,
+    fc_table = fc_df,
+    data = data
+  )
+}
 
-g_ccf_neg <- neg_lag_peak(g_ccf_tbl)
-s_ccf_neg <- neg_lag_peak(s_ccf_tbl)
-x_ccf_neg <- neg_lag_peak(x_ccf_tbl)
+analyze_goalie <- function(df, split_game) {
+  list(
+    cumulative_gsax_ev = analyze_series(df$cumulative_gsax_ev, split_game = split_game),
+    gsax_ev = analyze_series(df$gsax_ev, split_game = split_game),
+    sv_pct_ev = analyze_series(df$sv_pct_ev, split_game = split_game),
+    team_xg_pct_ev = analyze_series(df$team_xg_pct_ev, split_game = split_game)
+  )
+}
+
+blackwood_analysis <- analyze_goalie(blackwood_gbgs, split_game = split_game)
+shesterkin_analysis <- analyze_goalie(shesterkin_gbgs, split_game = split_game)
+
+selected_models <- list(
+  blackwood = c(
+    cumulative_gsax_ev = 'Model III',
+    gsax_ev = 'Model II',
+    sv_pct_ev = 'Model II',
+    team_xg_pct_ev = 'Model I'
+  ),
+  shesterkin = c(
+    cumulative_gsax_ev = 'Model IV',
+    gsax_ev = 'Model I',
+    sv_pct_ev = 'Model I',
+    team_xg_pct_ev = 'Model I'
+  )
+)
+
+blackwood_selected <- list(
+  cumulative_gsax_ev = blackwood_analysis$cumulative_gsax_ev$fits[[selected_models$blackwood['cumulative_gsax_ev']]],
+  gsax_ev = blackwood_analysis$gsax_ev$fits[[selected_models$blackwood['gsax_ev']]],
+  sv_pct_ev = blackwood_analysis$sv_pct_ev$fits[[selected_models$blackwood['sv_pct_ev']]],
+  team_xg_pct_ev = blackwood_analysis$team_xg_pct_ev$fits[[selected_models$blackwood['team_xg_pct_ev']]]
+)
+shesterkin_selected <- list(
+  cumulative_gsax_ev = shesterkin_analysis$cumulative_gsax_ev$fits[[selected_models$shesterkin['cumulative_gsax_ev']]],
+  gsax_ev = shesterkin_analysis$gsax_ev$fits[[selected_models$shesterkin['gsax_ev']]],
+  sv_pct_ev = shesterkin_analysis$sv_pct_ev$fits[[selected_models$shesterkin['sv_pct_ev']]],
+  team_xg_pct_ev = shesterkin_analysis$team_xg_pct_ev$fits[[selected_models$shesterkin['team_xg_pct_ev']]]
+)
+
+model_equation <- function(fit, response_symbol, digits = 6) {
+  coeffs <- stats::coef(fit)
+  term_labels <- c(
+    '(Intercept)' = '',
+    't' = 't',
+    't2' = '\\frac{t^2}{2!}',
+    't3' = '\\frac{t^3}{3!}',
+    't4' = '\\frac{t^4}{4!}'
+  )
+  fmt <- function(x) format(round(x, digits), nsmall = digits)
+  eq <- paste0('\\widehat{', response_symbol, '}_t = ', fmt(coeffs[1]))
+  if (length(coeffs) > 1) {
+    for (nm in names(coeffs)[-1]) {
+      sign <- if (coeffs[nm] >= 0) '+' else '-'
+      eq <- paste(eq, sign, fmt(abs(coeffs[nm])), term_labels[[nm]])
+    }
+  }
+  eq
+}
 ```
 
+\newpage
+
+## Problem 2 (a)
+
+\begin{problem}[Problem 2 (a)]
+Introduce your data project problem in detail explaining research goals clearly. Share your data in detail with all variables, source, and how this data was selected (that is, why not another dataset).
+\end{problem}
+
+My data project asks whether a goalie’s goals saved above expected, or GSAx, is really as team-independent as it is often treated in hockey analysis. The usual appeal of GSAx is that it seems fairer than raw save percentage or goals against because it does not treat all shots as equal; instead, it rewards a goalie for stopping dangerous chances and penalizes him more for allowing easier ones, so in principle it already adjusts for the playing conditions his team gives him. I want to challenge that interpretation rather than simply accept it. More specifically, I want to compare a goalie whose team environment changed substantially with a goalie whose team environment stayed much more stable. Mackenzie Blackwood is useful because he has now played for New Jersey, San Jose, and Colorado, so his surrounding roster and team process have changed a great deal. Igor Shesterkin is useful as the contrast because he has stayed with the New York Rangers, so any changes in his series come from year-to-year roster evolution rather than a franchise change. At the same time, I do not want to overstate the claim, because goalie performance can also vary for reasons that are not fully captured by team context, including natural progression or regression over a career, injury or recovery, confidence and mental state, fatigue, or back-to-back scheduling. So the project is not asking whether team context is the only driver of GSAx; it is asking whether the behavior of GSAx looks different when one goalie experiences major team changes and another does not.
+
+I study both goalies game by game at even strength and keep only regular-season games, that is, games with `gameTypeId = 2`, equivalently `gameId` values whose middle two digits are `02`. After filtering to complete even-strength regular-season records, Blackwood contributes the smaller complete sample, so to keep the comparison balanced I restrict both goalies to the first `r nrow(blackwood_gbgs)` complete even-strength regular-season career games. For Blackwood, the analysis sample runs from `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)` and includes `r sum(blackwood_gbgs$team_abbr == 'NJD')` games with New Jersey, `r sum(blackwood_gbgs$team_abbr == 'SJS')` games with San Jose, and `r sum(blackwood_gbgs$team_abbr == 'COL')` games with Colorado. For Shesterkin, the matched sample runs from `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)` and all `r nrow(shesterkin_gbgs)` games are with the Rangers. Within each goalie’s file, the time index is career game number, so for Blackwood and Shesterkin separately I set \(t = 1, 2, \ldots, `r nrow(blackwood_gbgs)`\).
+
+The raw NHL event and report data in my broader pipeline do start with my `nhlscraper` package through functions such as `nhlscraper::games()`, `nhlscraper::goalie_game_report()`, `nhlscraper::gc_pbps()`, and `nhlscraper::shift_charts()`, but the expected-goals layer used here is not merely a direct `nhlscraper` output. In `rentosrink`, I build my own xG pipeline on top of those inputs. The current model and deployment logic are described in the live Streamlit model page at \href{https://rentosrink.streamlit.app/expected_goal}{\texttt{rentosrink.streamlit.app}} and in the source file \href{https://github.com/RentoSaijo/rentosrink/blob/main/views/expected_goal.py}{\texttt{rentosrink/views/expected\_goal.py}}. The advanced game-by-game files used here are described in the GBG codebook at \href{https://github.com/RentoSaijo/rentosrink/blob/main/scripts/gbgs/codebook.md}{\texttt{rentosrink/scripts/gbgs/codebook.md}}, which states that advanced GBGs are built from the SBS/xG pipeline rather than from raw reports alone.
+
+Because this project is restricted to even-strength data, the relevant 2025--26 unseen-future xG validation is the two even-strength partitions rather than an all-situations aggregate. For Standard 5v5, the deployed `sd1` XGBoost model achieved log loss \(= 0.1926\), Brier score \(= 0.0522\), ROC AUC \(= 0.8038\), and calibration ratio \(= 1.0477\). For Non-Standard Even Strength, the deployed `ev2` LightGBM model achieved log loss \(= 0.2986\), Brier score \(= 0.0853\), ROC AUC \(= 0.7365\), and calibration ratio \(= 1.1595\). Those numbers matter here because my project depends on the quality of the xG estimates that feed the even-strength variables `xga_ev`, `xgf_ev`, `gsax_ev`, and `team_xg_pct_ev`; if the xG model were poor, then the entire goalie-context question would be much weaker. At the same time, even a strong public xG model is still incomplete. In particular, the public NHL event data do not provide full pass-tracking information, so my public xG models still cannot fully account for detailed pre-shot passing structure, deception, or some off-puck context. That means if GSAx still behaves differently across the two goalie situations, the project may reveal not only genuine team influence on goalie results, but also what the current public xG framework is still missing.
+
+The final project files were created by filtering the `rentosrink` goalie and team game-by-game tables in \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/basic}{\texttt{rentosrink/data/gbgs/basic}} and \href{https://github.com/RentoSaijo/rentosrink/tree/main/data/gbgs/advanced}{\texttt{rentosrink/data/gbgs/advanced}} to Blackwood’s player id `8478406` and Shesterkin’s player id `8478048`, keeping only regular-season games, merging the goalie basic, goalie advanced, and team advanced files by game and team, joining team names from \href{https://github.com/RentoSaijo/rentosrink/blob/main/data/teams.csv}{\texttt{rentosrink/data/teams.csv}}, and then keeping the even-strength columns only. The final analysis files are \href{https://github.com/RentoSaijo/STA209/blob/main/data/blackwood_gbgs.csv}{\texttt{STA209/data/blackwood\_gbgs.csv}} and \href{https://github.com/RentoSaijo/STA209/blob/main/data/shesterkin_gbgs.csv}{\texttt{STA209/data/shesterkin\_gbgs.csv}}, and each contains `r nrow(blackwood_gbgs)` complete observations after matching the sample length.
+
+The identifier and indexing variables are `game_number`, which is the time index \(t\); `game_date`, the calendar date of the game; `season`, the NHL season id; `team_id`, `team_abbr`, and `team_name`, which identify the goalie’s team in that game; `game_id` and `player_id`; and `team_change`, an indicator for the first game after a franchise change. The hockey performance variables are `shots_against_ev`, `goals_against_ev`, `xga_ev`, `xgf_ev`, `sv_pct_ev`, `gsax_ev`, `cumulative_gsax_ev`, and `cumulative_sv_pct_ev`. The main derived team-context variable is
+\[
+\texttt{team\_xg\_pct\_ev} = 100 \times \frac{\texttt{xgf\_ev}}{\texttt{xgf\_ev} + \texttt{xga\_team\_ev}},
+\]
+which is the team even-strength expected-goal share percentage from the team GBG file. For the actual analysis in part (c), I use `cumulative_gsax_ev` as the main response series and also model `gsax_ev`, `sv_pct_ev`, and `team_xg_pct_ev` separately for each goalie, since the assignment asks for modeling at least three time series and these four series together describe both goalie results and team environment.
+
+\newpage
+
+## Problem 2 (b)
+
+\begin{problem}[Problem 2 (b)]
+Find three journal articles on the research topic of your interest (called background research) using Google Scholar and OneSearch to support the relevance and importance of the research questions you are exploring. Cite the background research you did and share a summary.
+\end{problem}
+
+Using Google Scholar and OneSearch, I focused on journal articles that support three separate parts of my project question: whether hockey scoring environments are context-dependent, whether expected-goals style process metrics are more informative than raw results, and whether goalkeeper-specific shot models should explicitly account for the keeper rather than treating all context as external.
+
+- The first article is Lignell, Rago, and Mohr (2020), “Analysis of goal scoring opportunities in elite male ice hockey in relation to tactical and contextual variables,” \textit{International Journal of Performance Analysis in Sport}, 20(6), 1003--1017, \href{https://doi.org/10.1080/24748668.2020.1823161}{https://doi.org/10.1080/24748668.2020.1823161}. This article is directly relevant because it is hockey-specific and shows that the probability of scoring is affected by tactical and contextual variables, not just by a shooter-goalie duel in isolation, which supports the idea that a goalie’s environment may matter when we interpret a metric like GSAx.
+- The second article is Mead, O’Hare, and McMenemy (2023), “Expected goals in football: Improving model performance and demonstrating value,” \textit{PLOS ONE}, 18(4), e0282295, \href{https://doi.org/10.1371/journal.pone.0282295}{https://doi.org/10.1371/journal.pone.0282295}. Even though it is soccer rather than hockey, it is still very relevant because it shows that expected-goals style process measures outperform traditional shot and goal counts for prediction and evaluation, which supports using xG-based context variables instead of relying only on goals against or wins.
+- The third article is De-la-Cruz-Torres, Navarro-Castro, and Ruiz-de-Alarcón-Quintero (2025), “An Expected Goals On Target (xGOT) Model: Accounting for Goalkeeper Performance in Football,” \textit{Big Data and Cognitive Computing}, 9(3), 64, \href{https://doi.org/10.3390/bdcc9030064}{https://doi.org/10.3390/bdcc9030064}. This article matters because it argues that traditional shot models often overlook the goalkeeper’s contribution and proposes an explicitly goalkeeper-aware post-shot model, which is conceptually close to my question because GSAx is also supposed to isolate goalie performance from chance quality.
+
+All in all, these three articles support the importance of my project from three directions: hockey chances are shaped by context, xG-type process metrics are valuable for performance evaluation, and goalkeeper evaluation is strongest when the model takes both chance quality and the keeper’s contribution seriously rather than assuming independence by default. They also justify the comparison between Blackwood and Shesterkin, because that design lets me look at one goalie under major team changes and another under relative organizational continuity without leaving the broader question of context-adjusted goalie evaluation.
+
+\newpage
+
+## Problem 2 (c)
+
+\begin{problem}[Problem 2 (c)]
+For each variable, show time series plots (you can do multiple plots on the same slide) and comment on its main features (trend, seasonality, range, volatile, heteroscedasticity). Model the trend and seasonality of all variables (at least three) using techniques learned in the class and report the best model justifying their performance using all methods learned in class. Make a summary table comparing adjusted \(R^2\), F-test, likelihood-based criteria, and forecast evaluation criteria. For seasonality, make a periodogram of your response variable (one time series) and see if there is any seasonality in the data.
+\end{problem}
+
+For this part, I treat each series as a univariate time series indexed by career game number. For both Blackwood and Shesterkin, the time variable is \(t = 1, 2, \ldots, `r nrow(blackwood_gbgs)`\), where each value of \(t\) corresponds to one complete even-strength game in that goalie’s matched sample. The four series are `cumulative_gsax_ev`, `gsax_ev`, `sv_pct_ev`, and `team_xg_pct_ev`. For forecast evaluation, I use Blackwood’s move to Colorado as the split point, so the training sample is \(t = 1, \ldots, `r split_game - 1`\) and the holdout sample is \(t = `r split_game`, \ldots, `r nrow(blackwood_gbgs)`\). For Blackwood, that means training through `r blackwood_gbgs$game_date[split_game - 1]` and forecasting from `r blackwood_gbgs$game_date[split_game]`, his first Colorado game. For Shesterkin, I keep the same career-game split \(t = `r split_game`\) so that the holdout period has the same length and the comparison stays aligned by career-game count rather than calendar date.
+
+### Mackenzie Blackwood
+
 ```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
-# Time series plots for the response and candidate predictors.
+# Time series plots for Blackwood.
 op <- graphics::par(no.readonly = TRUE)
 on.exit(graphics::par(op), add = TRUE)
 graphics::par(mfrow = c(2, 2))
 astsa::tsplot(
   stats::ts(blackwood_gbgs$cumulative_gsax_ev, start = 1, frequency = 1),
-  main = 'Even-Strength Cumulative GSAx',
+  main = 'Blackwood: EV Cumulative GSAx',
   xlab = 'Career Game Number (t)',
   ylab = 'Cumulative GSAx at EV (Goals)',
   col = 'darkgreen',
@@ -488,7 +560,7 @@ astsa::tsplot(
 )
 astsa::tsplot(
   stats::ts(blackwood_gbgs$gsax_ev, start = 1, frequency = 1),
-  main = 'Even-Strength Game-by-Game GSAx',
+  main = 'Blackwood: EV Game-by-Game GSAx',
   xlab = 'Career Game Number (t)',
   ylab = 'GSAx at EV (Goals)',
   col = 'firebrick',
@@ -496,7 +568,7 @@ astsa::tsplot(
 )
 astsa::tsplot(
   stats::ts(blackwood_gbgs$sv_pct_ev, start = 1, frequency = 1),
-  main = 'Even-Strength Game-by-Game Save Percentage',
+  main = 'Blackwood: EV Game-by-Game Save Percentage',
   xlab = 'Career Game Number (t)',
   ylab = 'SV% at EV',
   col = 'purple4',
@@ -504,7 +576,7 @@ astsa::tsplot(
 )
 astsa::tsplot(
   stats::ts(blackwood_gbgs$team_xg_pct_ev, start = 1, frequency = 1),
-  main = 'Team Even-Strength xGF%',
+  main = 'Blackwood: Team EV xGF%',
   xlab = 'Career Game Number (t)',
   ylab = 'Team xGF% at EV (Percent)',
   col = 'navy',
@@ -512,145 +584,279 @@ astsa::tsplot(
 )
 ```
 
-- The `cumulative_gsax_ev` data is Blackwood’s running even-strength goals saved above expected over `r nrow(blackwood_gbgs)` career games. Its mean behavior is clearly time-dependent and non-linear, since the series rises early, declines for a long middle stretch, and then recovers later. There is no visible repeated seasonal pattern. Its statistical range is \(\max(H_t) - \min(H_t) = `r round(diff(range(blackwood_gbgs$cumulative_gsax_ev)), 3)`\) goals. Because the series is cumulative, its spread changes gradually rather than abruptly, and there is no strong evidence of heteroscedastic fanning or short-run volatility clustering.
+- The `cumulative_gsax_ev` data is Blackwood’s running even-strength goals saved above expected in goals over `r nrow(blackwood_gbgs)` career games from `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)`. Its mean behavior is clearly time-dependent and non-linear: the series rises early, declines for a long middle stretch, and then partially recovers late, which matches the idea that Blackwood experienced meaningful changes in team and career context over time. There is no visible repeated seasonal pattern. Its statistical range is \(\max(CG_t) - \min(CG_t) = `r round(diff(range(blackwood_gbgs$cumulative_gsax_ev)), 3)`\) goals. Because the series is cumulative, the spread changes gradually rather than abruptly, so there is no strong evidence of heteroscedastic fanning or short-run volatility clustering.
 
-- The `gsax_ev` data is Blackwood’s game-by-game even-strength goals saved above expected in goals. The series fluctuates around a roughly stable center rather than showing a strong long-run deterministic trend, although there are stretches of better and worse results. There is again no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = `r round(diff(range(blackwood_gbgs$gsax_ev)), 3)`\) goals. The variance looks fairly stable over time, so it appears approximately homoskedastic, but there are several isolated positive and negative spikes, so the game-by-game series is clearly more volatile than the cumulative series.
+- The `gsax_ev` data is Blackwood’s game-by-game even-strength GSAx in goals over the same `r nrow(blackwood_gbgs)` games. Unlike the cumulative series, it fluctuates around a fairly stable center and does not show a clear deterministic long-run trend, although there are clusters of better and worse games. There is again no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = `r round(diff(range(blackwood_gbgs$gsax_ev)), 3)`\) goals. The variance looks fairly stable over time, so it appears approximately homoskedastic, but there are several isolated positive and negative spikes, so the series is clearly volatile in the short run.
 
-- The `sv_pct_ev` data is Blackwood’s game-by-game even-strength save percentage in proportion form. Like `gsax_ev`, it fluctuates around a fairly stable mean rather than showing a clear deterministic trend, and there is no visible repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = `r round(diff(range(blackwood_gbgs$sv_pct_ev)), 4)`\). The spread looks broadly stable over the sample, so there is no strong visual evidence of heteroscedasticity. It does show occasional sharp single-game jumps, including several very strong and very weak save-percentage games, so it is moderately volatile in the short run.
+- The `sv_pct_ev` data is Blackwood’s game-by-game even-strength save percentage in proportion form. The mean appears more stable than the cumulative GSAx series, though there is still mild curvature over the full career path rather than a perfectly flat level. There is no clear repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = `r round(diff(range(blackwood_gbgs$sv_pct_ev)), 4)`\). The spread looks broadly stable over time, so there is no strong visual evidence of heteroscedasticity, but individual games can still jump sharply up or down, which makes the series moderately volatile.
 
-- The `team_xg_pct_ev` data is Blackwood’s team even-strength expected-goal share percentage, measured in percentage points, over the same `r nrow(blackwood_gbgs)` career games. Its mean behavior is time-dependent, but not in a smooth polynomial way; instead, it shows regime changes that line up more naturally with team context changes. There is no clear repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = `r round(diff(range(blackwood_gbgs$team_xg_pct_ev)), 3)`\) percentage points. The spread looks fairly stable over time, so it appears approximately homoskedastic, and while it does move sharply at times, it is not strongly volatile in the same spike-like way as the two game-by-game goalie-performance series.
-
-```{r, fig.width=10, fig.height=5, out.width='\\linewidth'}
-# Periodogram for cumulative GSAx at even strength.
-graphics::plot(
-  gsax_period$f,
-  gsax_period$P,
-  type = 'l',
-  main = 'Periodogram for cumulative_gsax_ev',
-  xlab = 'Frequency',
-  ylab = 'P(frequency)',
-  col = 'navy',
-  lwd = 2
-)
-graphics::abline(v = gsax_period$freq, col = 'red', lty = 2, lwd = 2)
-```
-
-The periodogram for `cumulative_gsax_ev` has its dominant peak at frequency \(f = `r round(gsax_period$freq, 6)`\), which corresponds to an implied period of about `r round(gsax_period$period, 0)` games. Since that period is essentially the full sample length, it reflects long-run trend rather than practical seasonality. So based on the periodogram, I do not include any seasonal harmonic or indicator terms in the candidate models.
+- The `team_xg_pct_ev` data is Blackwood’s team even-strength expected-goal share percentage in percentage points. Its mean behavior is time-dependent, but not in a smooth linear way; instead, it shows broader regime changes that line up naturally with changes in team environment. There is no visible repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = `r round(diff(range(blackwood_gbgs$team_xg_pct_ev)), 3)`\) percentage points. The variance appears roughly stable over time, so the series looks approximately homoskedastic, and while it does move materially, it is not as spike-like or volatile as the two game-by-game goalie-performance series.
 
 ```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
-# ACF and CCF diagnostics for the cumulative response.
+# Periodograms for Blackwood.
 op <- graphics::par(no.readonly = TRUE)
 on.exit(graphics::par(op), add = TRUE)
 graphics::par(mfrow = c(2, 2))
-stats::acf(blackwood_gbgs$cumulative_gsax_ev, lag.max = 8, main = 'ACF: cumulative_gsax_ev')
-stats::ccf(
-  as.numeric(blackwood_gbgs$gsax_ev),
-  as.numeric(blackwood_gbgs$cumulative_gsax_ev),
-  lag.max = 8,
-  main = 'CCF: gsax_ev vs cumulative_gsax_ev'
-)
-stats::ccf(
-  as.numeric(blackwood_gbgs$sv_pct_ev),
-  as.numeric(blackwood_gbgs$cumulative_gsax_ev),
-  lag.max = 8,
-  main = 'CCF: sv_pct_ev vs cumulative_gsax_ev'
-)
-stats::ccf(
-  as.numeric(blackwood_gbgs$team_xg_pct_ev),
-  as.numeric(blackwood_gbgs$cumulative_gsax_ev),
-  lag.max = 8,
-  main = 'CCF: team_xg_pct_ev vs cumulative_gsax_ev'
-)
+for (nm in c('cumulative_gsax_ev', 'gsax_ev', 'sv_pct_ev', 'team_xg_pct_ev')) {
+  info <- blackwood_analysis[[nm]]$period
+  title_text <- switch(
+    nm,
+    cumulative_gsax_ev = 'Blackwood: Periodogram for cumulative_gsax_ev',
+    gsax_ev = 'Blackwood: Periodogram for gsax_ev',
+    sv_pct_ev = 'Blackwood: Periodogram for sv_pct_ev',
+    team_xg_pct_ev = 'Blackwood: Periodogram for team_xg_pct_ev'
+  )
+  graphics::plot(
+    info$f,
+    info$P,
+    type = 'l',
+    main = title_text,
+    xlab = 'Frequency',
+    ylab = 'P(frequency)',
+    col = 'navy',
+    lwd = 2
+  )
+  graphics::abline(v = info$freq, col = 'red', lty = 2, lwd = 2)
+}
 ```
 
-The ACF of `cumulative_gsax_ev` is extremely high at nearby lags, with lag-1 autocorrelation `r round(h_acf_tbl$acf[h_acf_tbl$lag == 1], 3)` and lag-4 autocorrelation `r round(h_acf_tbl$acf[h_acf_tbl$lag == 4], 3)`. That is expected for a cumulative series and reinforces the idea that the mean structure is strongly time-dependent. Since our class regression approach has focused on modeling the mean directly with trend terms rather than adding lagged responses, I use this ACF mainly as evidence that a simple linear trend will not be enough.
-
-For the CCFs, the noncontemporaneous lead-lag relation from `gsax_ev` to `cumulative_gsax_ev` is weak, but among negative lags the largest spike occurs at lag `r g_ccf_neg$lag` with correlation `r round(g_ccf_neg$acf, 3)`, so if I try a lagged GSAx predictor, \(G_{t-3}\) is the most defensible one. The CCF between `sv_pct_ev` and `cumulative_gsax_ev` is stronger, with a very large contemporaneous spike as expected, but among negative lags the largest spike occurs at lag `r s_ccf_neg$lag` with correlation `r round(s_ccf_neg$acf, 3)`, so the natural lagged save-percentage predictor is \(S_{t-3}\). The CCF between `team_xg_pct_ev` and `cumulative_gsax_ev` is extremely weak throughout, with the largest negative-lag spike only about `r round(x_ccf_neg$acf, 3)` at lag `r x_ccf_neg$lag`, so I do not see enough evidence to keep `team_xg_pct_ev` in the final candidate model set.
-
-Let \(H_t\) denote `cumulative_gsax_ev`, let \(G_t\) denote `gsax_ev`, and let \(S_t\) denote `sv_pct_ev`. Based on the non-linear shape in the response plot, the lack of seasonality in the periodogram, the strong persistence of the cumulative response, and the response-based CCFs, I compare the following six candidate models:
-
+For Blackwood, none of the four periodograms suggests a convincing seasonal cycle. For `cumulative_gsax_ev`, there is a very prominent spike, but it is concentrated essentially at frequency 0, with dominant frequency \(f = `r round(blackwood_analysis$cumulative_gsax_ev$period$freq, 6)`\) and implied period about `r round(blackwood_analysis$cumulative_gsax_ev$period$period, 1)` games, so that spike reflects long-run trend rather than seasonality. For `gsax_ev` and `sv_pct_ev`, the highest peaks occur at implied periods of about `r round(blackwood_analysis$gsax_ev$period$period, 2)` and `r round(blackwood_analysis$sv_pct_ev$period$period, 2)` games, but those peaks are not sharply separated from many other nearby peaks of similar height, so the periodograms do not show the kind of isolated dominant spike that would support a clean seasonal frequency. For `team_xg_pct_ev`, the stronger low-frequency peak again sits very close to 0 and is more consistent with broad team-context drift or regime change than with a stable repeating cycle. Therefore, I do not include harmonic terms for Blackwood. Since no meaningful seasonality is present, I compare the same four nonseasonal polynomial trend models for each Blackwood series \(Y_t\):
 \[
 \begin{aligned}
-\text{Model I: } & H_t = \beta_0 + \beta_1 t + W_t, \\
-\text{Model II: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + W_t, \\
-\text{Model III: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + W_t, \\
-\text{Model IV: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 S_{t-3} + W_t, \\
-\text{Model V: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 G_{t-3} + W_t, \\
-\text{Model VI: } & H_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 G_{t-3} + \beta_5 S_{t-3} + W_t.
+\text{Model I: } & Y_t = \beta_0 + \beta_1 t + W_t, \\
+\text{Model II: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + W_t, \\
+\text{Model III: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + W_t, \\
+\text{Model IV: } & Y_t = \beta_0 + \beta_1 t + \beta_2 \frac{t^2}{2!} + \beta_3 \frac{t^3}{3!} + \beta_4 \frac{t^4}{4!} + W_t.
 \end{aligned}
 \]
 
-```{r}
-gsax_forms <- list(
-  'Model I' = H ~ t,
-  'Model II' = H ~ t + t2,
-  'Model III' = H ~ t + t2 + t3,
-  'Model IV' = H ~ t + t2 + t3 + SL3,
-  'Model V' = H ~ t + t2 + t3 + GL3,
-  'Model VI' = H ~ t + t2 + t3 + GL3 + SL3
-)
-
-models_gsax <- lapply(gsax_forms, function(form) stats::lm(form, data = gsax_data))
-gsax_fit_table <- do.call(
-  rbind,
-  lapply(names(models_gsax), function(name) cbind(Model = name, fit_table_proj(models_gsax[[name]])))
-)
-gsax_fc_table <- do.call(
-  rbind,
-  lapply(names(gsax_forms), function(name) cbind(Model = name, fcst_metrics_proj(gsax_data, gsax_forms[[name]])))
-)
-rownames(gsax_fit_table) <- NULL
-rownames(gsax_fc_table) <- NULL
-gsax_fit_table$Parameters <- as.integer(gsax_fit_table$Parameters)
-
-gsax_best <- models_gsax[['Model IV']]
-```
-
 ```{r, echo=FALSE, results='asis'}
+cat('#### Blackwood: Cumulative Goals Saved Above Expected\n\n')
 table_latex(
-  gsax_fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  blackwood_analysis$cumulative_gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
   digits = 4,
-  col_names = c('Model', '\\# Par', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
 )
-```
-
-```{r, echo=FALSE, results='asis'}
+cat('\n')
 table_latex(
-  gsax_fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  blackwood_analysis$cumulative_gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Blackwood: Game-by-Game GSAx\n\n')
+table_latex(
+  blackwood_analysis$gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  blackwood_analysis$gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Blackwood: Game-by-Game Save Percentage\n\n')
+table_latex(
+  blackwood_analysis$sv_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  blackwood_analysis$sv_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Blackwood: Team xGF%\n\n')
+table_latex(
+  blackwood_analysis$team_xg_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  blackwood_analysis$team_xg_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
   digits = 4,
   col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
 )
 ```
 
-```{r, fig.width=10, fig.height=5, out.width='\\linewidth'}
-# Observed versus fitted plot for selected cumulative GSAx model.
+For Blackwood’s `cumulative_gsax_ev`, Model IV has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, but once the holdout period is defined by the Colorado move, its forecast performance deteriorates badly. Since `cumulative_gsax_ev` can be negative or near zero, I rely more on MSE and MAE than on MPE and MAPE for forecast evaluation here. Model III keeps essentially all of the strong in-sample fit while forecasting much better across the Colorado segment, so I select Model III as the practical final model for Blackwood’s cumulative GSAx. The fitted model is
+\[
+`r model_equation(blackwood_selected$cumulative_gsax_ev, 'CG')`
+\]
+where \(CG_t\) is Blackwood’s cumulative even-strength GSAx in goals at career game \(t = 1, 2, \ldots, `r nrow(blackwood_gbgs)`\).
+
+For Blackwood’s `gsax_ev`, the story is very different. All four models have adjusted \(R^2\) values near zero and the overall F-tests are not significant, so there is no strong evidence of a meaningful deterministic polynomial trend in Blackwood’s game-by-game GSAx. Under the Colorado split, however, the holdout MSE and MAE are both smallest for Model II, even though the information criteria still prefer Model I. Since the forecasting target here is specifically the post-trade segment and Model II is only one step more complex, I select Model II as the better practical forecasting model. The fitted model is
+\[
+`r model_equation(blackwood_selected$gsax_ev, 'G')`
+\]
+where \(G_t\) is Blackwood’s even-strength game-by-game GSAx in goals at career game \(t\).
+
+For Blackwood’s `sv_pct_ev`, the criteria remain mixed, but the Colorado split shifts the forecasting preference toward the quadratic model. Model IV still gives the largest adjusted \(R^2\) and the smallest AIC and AICc, but Model II gives the smallest holdout MSE, while Model IV only narrowly improves MAE. Since the quadratic model is much simpler and already has a significant overall F-test, I select Model II as the more reasonable compromise between fit, forecasting, and parsimony. The fitted model is
+\[
+`r model_equation(blackwood_selected$sv_pct_ev, 'S')`
+\]
+where \(S_t\) is Blackwood’s even-strength save percentage in proportion form at career game \(t\).
+
+For Blackwood’s `team_xg_pct_ev`, the Colorado split changes the conclusion materially. Model III still has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, but when the forecasting target is the post-trade Colorado segment, Model I gives the smallest holdout MSE and MAE by a wide margin. Since the team change creates a real regime break, I place more weight on forecast performance here than on the full-sample descriptive fit, and I select Model I as the more useful model for this exercise. The fitted model is
+\[
+`r model_equation(blackwood_selected$team_xg_pct_ev, 'X')`
+\]
+where \(X_t\) is Blackwood’s team even-strength xGF\% in percentage points at career game \(t\).
+
+### Igor Shesterkin
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Time series plots for Shesterkin.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(2, 2))
 astsa::tsplot(
-  stats::ts(gsax_data$H, start = min(gsax_data$t), frequency = 1),
-  main = 'Observed vs Fitted cumulative_gsax_ev',
+  stats::ts(shesterkin_gbgs$cumulative_gsax_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: EV Cumulative GSAx',
   xlab = 'Career Game Number (t)',
   ylab = 'Cumulative GSAx at EV (Goals)',
-  col = 'black',
-  lwd = 2
-)
-lines(
-  stats::ts(stats::fitted(gsax_best), start = min(gsax_data$t), frequency = 1),
   col = 'darkgreen',
   lwd = 2
 )
-graphics::legend('topleft', legend = c('Observed', 'Fitted'), col = c('black', 'darkgreen'), lty = 1, lwd = 2, bty = 'n')
+astsa::tsplot(
+  stats::ts(shesterkin_gbgs$gsax_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: EV Game-by-Game GSAx',
+  xlab = 'Career Game Number (t)',
+  ylab = 'GSAx at EV (Goals)',
+  col = 'firebrick',
+  lwd = 2
+)
+astsa::tsplot(
+  stats::ts(shesterkin_gbgs$sv_pct_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: EV Game-by-Game Save Percentage',
+  xlab = 'Career Game Number (t)',
+  ylab = 'SV% at EV',
+  col = 'purple4',
+  lwd = 2
+)
+astsa::tsplot(
+  stats::ts(shesterkin_gbgs$team_xg_pct_ev, start = 1, frequency = 1),
+  main = 'Shesterkin: Team EV xGF%',
+  xlab = 'Career Game Number (t)',
+  ylab = 'Team xGF% at EV (Percent)',
+  col = 'navy',
+  lwd = 2
+)
 ```
 
-The comparison table shows that the linear and quadratic trend models are inadequate once the clear curvature of the series is taken seriously. Model III, the cubic trend model, is a major improvement over Models I and II. Among the lag-augmented models, the in-sample fit criteria slightly favor Model V, which adds the lag-3 GSAx term, but the forecast criteria favor Model IV, which adds the lag-3 save-percentage term. Model VI does not improve enough to justify keeping both lagged predictors together, since its added terms are not individually significant in the fuller model. Because the response-based CCF is stronger for `sv_pct_ev` than for `gsax_ev`, and because Model IV gives the better holdout MSE and MAE, I select Model IV for `cumulative_gsax_ev`.
+- The `cumulative_gsax_ev` data is Shesterkin’s running even-strength goals saved above expected in goals over his first `r nrow(shesterkin_gbgs)` matched career games from `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)`. Compared with Blackwood, the most striking difference is that Shesterkin’s cumulative GSAx follows a much steadier upward path and finishes far above zero. The mean behavior is clearly time-dependent and non-linear, but the dominant shape is strong upward growth with only moderate flattening or pullback episodes. There is no visible repeated seasonal pattern. Its statistical range is \(\max(CG_t) - \min(CG_t) = `r round(diff(range(shesterkin_gbgs$cumulative_gsax_ev)), 3)`\) goals. As with Blackwood, the cumulative nature of the series means there is no obvious short-run volatility clustering or abrupt fanning of variance.
 
-The fitted model is
+- The `gsax_ev` data is Shesterkin’s game-by-game even-strength GSAx in goals. Compared with Blackwood’s game-by-game GSAx, it fluctuates around a somewhat higher center, which is consistent with Shesterkin’s much more positive cumulative path, but it is still a noisy game-by-game series with no strong deterministic trend. There is no visible repeated seasonal pattern. Its statistical range is \(\max(G_t) - \min(G_t) = `r round(diff(range(shesterkin_gbgs$gsax_ev)), 3)`\) goals. The spread looks fairly stable over time, so the series appears approximately homoskedastic, and there are isolated positive and negative spikes, so it remains volatile in the short run.
+
+- The `sv_pct_ev` data is Shesterkin’s game-by-game even-strength save percentage in proportion form. Compared with Blackwood, Shesterkin’s series sits at a slightly higher average level and appears a little more stable overall, although it still has occasional sharp one-game deviations. There is no visible repeated seasonal pattern. Its statistical range is \(\max(S_t) - \min(S_t) = `r round(diff(range(shesterkin_gbgs$sv_pct_ev)), 4)`\). The variance looks roughly constant across time, so there is no strong visual sign of heteroscedasticity, and the short-run volatility is moderate rather than extreme.
+
+- The `team_xg_pct_ev` data is Shesterkin’s team even-strength expected-goal share percentage in percentage points over the same `r nrow(shesterkin_gbgs)` games. Compared with Blackwood, this series looks less dominated by franchise-level regime changes because Shesterkin stays with one organization throughout the matched sample. Its mean behavior still moves over time, but the shifts are smoother and more incremental. There is no visible repeated seasonal pattern. Its statistical range is \(\max(X_t) - \min(X_t) = `r round(diff(range(shesterkin_gbgs$team_xg_pct_ev)), 3)`\) percentage points. The spread appears roughly constant over time, so the series looks approximately homoskedastic, and it is less spiky than the goalie-performance series.
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Periodograms for Shesterkin.
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(mfrow = c(2, 2))
+for (nm in c('cumulative_gsax_ev', 'gsax_ev', 'sv_pct_ev', 'team_xg_pct_ev')) {
+  info <- shesterkin_analysis[[nm]]$period
+  title_text <- switch(
+    nm,
+    cumulative_gsax_ev = 'Shesterkin: Periodogram for cumulative_gsax_ev',
+    gsax_ev = 'Shesterkin: Periodogram for gsax_ev',
+    sv_pct_ev = 'Shesterkin: Periodogram for sv_pct_ev',
+    team_xg_pct_ev = 'Shesterkin: Periodogram for team_xg_pct_ev'
+  )
+  graphics::plot(
+    info$f,
+    info$P,
+    type = 'l',
+    main = title_text,
+    xlab = 'Frequency',
+    ylab = 'P(frequency)',
+    col = 'navy',
+    lwd = 2
+  )
+  graphics::abline(v = info$freq, col = 'red', lty = 2, lwd = 2)
+}
+```
+
+For Shesterkin, the periodograms also fail to show a convincing seasonal cycle. For `cumulative_gsax_ev`, the dominant spike again occurs extremely close to frequency 0, with \(f = `r round(shesterkin_analysis$cumulative_gsax_ev$period$freq, 6)`\), so it is better interpreted as long-run trend than seasonality. For `gsax_ev` and `sv_pct_ev`, the strongest peaks correspond to implied periods of about `r round(shesterkin_analysis$gsax_ev$period$period, 2)` and `r round(shesterkin_analysis$sv_pct_ev$period$period, 2)` games, but they are only slightly taller than several other peaks, so there is no single isolated spectral spike that clearly dominates the rest of the plot. For `team_xg_pct_ev`, the top peaks are also very close in height to one another, which again argues against a clean seasonal frequency. So for Shesterkin, I also omit harmonic terms and use the same four nonseasonal polynomial trend models.
+
+```{r, echo=FALSE, results='asis'}
+cat('#### Shesterkin: Cumulative Goals Saved Above Expected\n\n')
+table_latex(
+  shesterkin_analysis$cumulative_gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  shesterkin_analysis$cumulative_gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Shesterkin: Game-by-Game GSAx\n\n')
+table_latex(
+  shesterkin_analysis$gsax_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  shesterkin_analysis$gsax_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Shesterkin: Game-by-Game Save Percentage\n\n')
+table_latex(
+  shesterkin_analysis$sv_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  shesterkin_analysis$sv_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+cat('\n\n#### Shesterkin: Team xGF%\n\n')
+table_latex(
+  shesterkin_analysis$team_xg_pct_ev$fit_table[, c('Model', 'Parameters', 'R2a', 'Fp', 'AIC', 'AICC', 'BIC')],
+  digits = 4,
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+cat('\n')
+table_latex(
+  shesterkin_analysis$team_xg_pct_ev$fc_table[, c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')],
+  digits = 4,
+  col_names = c('Model', 'ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+For Shesterkin’s `cumulative_gsax_ev`, the evidence is much cleaner than it was for Blackwood. Model IV is favored by adjusted \(R^2\), AIC, AICc, BIC, MSE, and MAE, so the criteria all point in the same direction. Compared with Blackwood’s cumulative series, Shesterkin’s smoother upward path is captured very well by the quartic trend model. I therefore select Model IV for Shesterkin’s cumulative GSAx. The fitted model is
 \[
-\widehat H_t
-= `r round(stats::coef(gsax_best)[1], 6)`
-`r ifelse(stats::coef(gsax_best)[2] >= 0, '+', '-')` `r abs(round(stats::coef(gsax_best)[2], 6))` t
-`r ifelse(stats::coef(gsax_best)[3] >= 0, '+', '-')` `r abs(round(stats::coef(gsax_best)[3], 6))` \frac{t^2}{2!}
-`r ifelse(stats::coef(gsax_best)[4] >= 0, '+', '-')` `r abs(round(stats::coef(gsax_best)[4], 6))` \frac{t^3}{3!}
-`r ifelse(stats::coef(gsax_best)[5] >= 0, '+', '-')` `r abs(round(stats::coef(gsax_best)[5], 6))` S_{t-3},
+`r model_equation(shesterkin_selected$cumulative_gsax_ev, 'CG')`
 \]
-where \(H_t\) is cumulative even-strength GSAx in goals and \(S_{t-3}\) is Blackwood’s even-strength save percentage from three games earlier, measured in proportion form. Because Models IV-VI require the lagged terms, all six models are compared on the common aligned sample \(t=`r min(gsax_data$t)`,\ldots,`r max(gsax_data$t)`\), so \(n=`r nrow(gsax_data)`\). The lag-3 `sv_pct_ev` coefficient is statistically significant with \(p = `r signif(summary(gsax_best)$coefficients['SL3', 'Pr(>|t|)'], 4)`\), which is consistent with the strongest noncontemporaneous CCF relation among the candidate predictors. The coefficient of determination is \(R^2 = `r round(summary(gsax_best)$r.squared, 4)`\), so the model explains about `r round(100 * summary(gsax_best)$r.squared, 2)`\% of the variation in `cumulative_gsax_ev`. The residual standard error is `r round(summary(gsax_best)$sigma, 4)` cumulative-GSAx units, which means on average the fitted cumulative even-strength GSAx differs from the observed cumulative even-strength GSAx by about `r round(summary(gsax_best)$sigma, 4)` goals. Because `cumulative_gsax_ev` can be negative or near zero, the percent-based holdout errors MPE and MAPE are less stable here than MSE and MAE, so I rely more on the latter two when discussing forecast performance.
+where \(CG_t\) is Shesterkin’s cumulative even-strength GSAx in goals at career game \(t = 1, 2, \ldots, `r nrow(shesterkin_gbgs)`\).
 
-In summary, the even-strength evidence does not suggest any meaningful seasonal cycle in cumulative GSAx, so seasonal terms are unnecessary. The time-series plot supports a cubic trend, the ACF confirms that the cumulative response is highly persistent, and the response-based CCFs suggest that lagged save percentage is the most relevant noncontemporaneous predictor among the candidate variables, while `team_xg_pct_ev` does not show much direct signal against `cumulative_gsax_ev` in this one-goalie setting. So at this stage, the results do not give strong evidence that the measured team-context variable I used is driving cumulative GSAx, but they do suggest that recent goalie-level performance still matters, which means the broader “GSAx is fully independent of circumstance” claim remains unsettled rather than confirmed. One limitation is that these exploratory diagnostics were examined on the full dataset before the train-holdout split was used for forecast evaluation, so there is some information leakage in the model-building stage. Also, `team_xg_pct_ev` is only one public context measure, and the xG model itself still misses information such as detailed pre-shot passing structure. With those limitations noted, Model IV is my final choice for now because it is the best current working model for this stage of the project, not the permanent final conclusion on the research question.
+For Shesterkin’s `gsax_ev`, the deterministic trend signal is again very weak. The overall F-tests are not significant, the information criteria favor the simplest linear specification, and the forecasting differences between Models I and III are tiny. As with Blackwood, the sensible conclusion is that game-by-game GSAx is largely noisy around a stable level rather than strongly trend-driven. So I select Model I for parsimony. The fitted model is
+\[
+`r model_equation(shesterkin_selected$gsax_ev, 'G')`
+\]
+where \(G_t\) is Shesterkin’s even-strength game-by-game GSAx in goals at career game \(t\).
+
+For Shesterkin’s `sv_pct_ev`, the evidence remains weak under the aligned career-game split. Model I has the largest adjusted \(R^2\) and the smallest AIC, AICc, and BIC, while Model III only barely improves MSE and MAE. Compared with Blackwood, the save-percentage series is a little more stable and shows even less need for higher-order trend terms, so I still select Model I on grounds of parsimony and the very small forecasting differences. The fitted model is
+\[
+`r model_equation(shesterkin_selected$sv_pct_ev, 'S')`
+\]
+where \(S_t\) is Shesterkin’s even-strength save percentage in proportion form at career game \(t\).
+
+For Shesterkin’s `team_xg_pct_ev`, the evidence for a deterministic polynomial trend is weak. Model IV has the largest adjusted \(R^2\), but Model I has the smallest AIC, AICc, and BIC, while Model III only slightly improves the holdout MSE and MAE. Since the overall F-tests remain weak and the one-team sample looks comparatively stable, I select Model I as the most sensible summary model for Shesterkin’s team xGF\%. The fitted model is
+\[
+`r model_equation(shesterkin_selected$team_xg_pct_ev, 'X')`
+\]
+where \(X_t\) is Shesterkin’s team even-strength xGF\% in percentage points at career game \(t\).
+
+In summary, the univariate trend-and-seasonality analysis suggests that neither goalie shows meaningful seasonality in any of the four even-strength series, so harmonic terms are unnecessary here. Blackwood’s cumulative GSAx and team xGF\% are more visibly shaped by broader regime changes, while Shesterkin’s cumulative GSAx is much smoother and more strongly trend-driven over the matched sample. The game-by-game GSAx and save-percentage series for both goalies are much noisier and admit only weak deterministic trends. This part by itself does not prove that GSAx is or is not independent of team context, because I am modeling each series separately rather than directly regressing one on another. However, the comparison does support the original project motivation: a traded goalie and a non-traded goalie can have meaningfully different time-series behavior even under the same even-strength xG framework, so the question of whether GSAx is truly team-independent still deserves further study.
