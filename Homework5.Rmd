@@ -121,6 +121,38 @@ knitr::opts_chunk$set(
 )
 options(width = 125, scipen = 999)
 
+# Prefer the same CMU Serif look used in my STA336 work when available.
+font_path <- '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf'
+if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) {
+  sysfonts::font_add(
+    family = 'cmuserif',
+    regular = '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf',
+    bold = '/Users/rsai_91/Library/Fonts/cmu.serif-bold.ttf',
+    italic = '/Users/rsai_91/Library/Fonts/cmu.serif-italic.ttf',
+    bolditalic = '/Users/rsai_91/Library/Fonts/cmu.serif-bolditalic.ttf'
+  )
+  showtext::showtext_opts(dpi = 500)
+  showtext::showtext_auto(enable = TRUE)
+  knitr::opts_chunk$set(dev = 'CairoPDF')
+  graphics::par(family = 'cmuserif')
+}
+plot_family <- if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) 'cmuserif' else graphics::par('family')
+
+with_family <- function(expr, family = plot_family) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(family = family)
+  force(expr)
+}
+
 # Helper for simple latex table.
 table_latex <- function(x, digits = 3, caption = NULL, size = '\\normalsize', col_names = NULL) {
   y <- x
@@ -134,7 +166,8 @@ table_latex <- function(x, digits = 3, caption = NULL, size = '\\normalsize', co
     col.names = col_names,
     align = rep('c', ncol(y)),
     row.names = FALSE,
-    escape = FALSE
+    escape = FALSE,
+    position = 'H'
   )
   knitr::asis_output(
     paste0("\\begin{center}\n", size, "\n", tab, "\n\\normalsize\n\\end{center}")
@@ -164,24 +197,18 @@ acf_stem_plot <- function(lags, acf_values, main_text) {
 
 # Disclosure
 
-GPT-5.4 Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document and simple helper functions were defined for tables and ACF plots.
+GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting and formatting code blocks.
 
 \newpage
 
 # Problem 1
 
-\begin{problem}[Problem-1 (20 points)]
+\begin{problem}[Problem 1]
 Suppose a time series follows the following model:
 \[
 X_t = W_t - 0.2W_{t-2},
 \]
 where \(W_t \sim WN(0,\sigma_w^2)\), that is, \(\{W_t\}\) is a white noise with mean \(0\) and variance \(\sigma_w^2\).
-\begin{enumerate}[label=(\alph*)]
-\item Determine its mean.
-\item Determine its Auto-Covariance Function (ACVF).
-\item Find and plot the Auto-Correlation Function (ACF).
-\item Is the process stationary, justify?
-\end{enumerate}
 \end{problem}
 
 \newpage
@@ -342,7 +369,7 @@ acf_stem_plot(p1_lags, p1_rho, 'Problem 1: ACF')
 ## Problem 1 (d)
 
 \begin{problem}[Problem 1 (d)]
-Is the process stationary, justify?
+Is the process stationary? Justify.
 \end{problem}
 
 Yes, \(\{X_t\}\) is weakly stationary because of the following:
@@ -372,17 +399,11 @@ which is also constant over time. Therefore, the process satisfies both conditio
 
 # Problem 2
 
-\begin{problem}[Problem 2 (30 points)]
+\begin{problem}[Problem 2]
 For the following MA process
 \[
 X_t = W_{t-1} + 2W_t + W_{t+1}
 \]
-\begin{enumerate}[label=(\alph*)]
-\item Determine its mean.
-\item Determine its Auto-Covariance Function (ACVF).
-\item Find and plot the Auto-Correlation Function (ACF).
-\item Is the process stationary, justify?
-\end{enumerate}
 \end{problem}
 
 \newpage
@@ -608,7 +629,7 @@ acf_stem_plot(p2_lags, p2_rho, 'Problem 2: ACF')
 ## Problem 2 (d)
 
 \begin{problem}[Problem 2 (d)]
-Is the process stationary, justify?
+Is the process stationary? Justify.
 \end{problem}
 
 Yes, \(\{X_t\}\) is weakly stationary because of the following:
@@ -634,3 +655,748 @@ At lag \(h=0\), the ACVF is the variance, so
 \sigma_X^2(t) = \sigma_X^2 = \gamma_X(0) = 6\sigma_w^2,
 \]
 which is constant over time. Therefore, the process satisfies both conditions for weak stationarity. Hence, \(\{X_t\}\) is stationary.
+
+\newpage
+
+# Problem 3
+
+\begin{problem}[Problem 3]
+For your data analysis project, do the following:
+\end{problem}
+
+```{r, include=FALSE}
+library(astsa)
+library(tseries)
+
+# Read the matched goalie game-by-game files.
+blackwood_gbgs <- utils::read.csv('data/blackwood_gbgs.csv', stringsAsFactors = FALSE)
+shesterkin_gbgs <- utils::read.csv('data/shesterkin_gbgs.csv', stringsAsFactors = FALSE)
+
+# Match the samples game-by-game.
+matched_n <- min(nrow(blackwood_gbgs), nrow(shesterkin_gbgs))
+blackwood_gbgs <- blackwood_gbgs[1:matched_n, ]
+shesterkin_gbgs <- shesterkin_gbgs[1:matched_n, ]
+
+format_p <- function(p, digits = 4) {
+  if (is.na(p)) {
+    return(NA_character_)
+  }
+  if (p < 10^(-digits)) {
+    return(paste0('<', format(10^(-digits), scientific = FALSE, trim = TRUE)))
+  }
+  format(round(p, digits), nsmall = digits)
+}
+
+fit_table <- function(fit) {
+  n <- length(stats::residuals(fit))
+  r <- length(stats::coef(fit))
+  sse <- sum(stats::residuals(fit)^2)
+  f_stats <- summary(fit)$fstatistic
+  f_p <- unname(stats::pf(f_stats[1], f_stats[2], f_stats[3], lower.tail = FALSE))
+  data.frame(
+    Parameters = r,
+    R2a = summary(fit)$adj.r.squared,
+    Fp = format_p(f_p),
+    AIC = stats::AIC(fit) / n,
+    AICC = log(sse / n) + ((n + r) / (n - r - 2)),
+    BIC = stats::AIC(fit, k = log(n)) / n,
+    stringsAsFactors = FALSE
+  )
+}
+
+fcst_metrics <- function(data, form, split_t) {
+  train_data <- data[data$t < split_t, , drop = FALSE]
+  test_data <- data[data$t >= split_t, , drop = FALSE]
+  fit_train <- stats::lm(form, data = train_data)
+  y_hat <- stats::predict(fit_train, newdata = test_data)
+  e <- test_data$Y - y_hat
+  nz <- abs(test_data$Y) > 1e-8
+  data.frame(
+    ME = mean(e),
+    MPE = if (any(nz)) 100 * mean((e / test_data$Y)[nz]) else NA_real_,
+    MSE = mean(e^2),
+    MAE = mean(abs(e)),
+    MAPE = if (any(nz)) 100 * mean(abs((e / test_data$Y)[nz])) else NA_real_,
+    stringsAsFactors = FALSE
+  )
+}
+
+equation_from_fit <- function(fit, lhs, term_labels, digits = 6, math_mode = TRUE) {
+  coeffs <- stats::coef(fit)
+  fmt_abs <- function(x) format(round(abs(x), digits), nsmall = digits)
+  fmt_raw <- function(x) format(round(x, digits), nsmall = digits)
+  eq <- paste0(lhs, ' = ', fmt_raw(coeffs[1]))
+  if (length(coeffs) > 1) {
+    for (nm in names(coeffs)[-1]) {
+      sign <- if (coeffs[nm] >= 0) '+' else '-'
+      eq <- paste(eq, sign, fmt_abs(coeffs[nm]), term_labels[[nm]])
+    }
+  }
+  if (math_mode) {
+    paste0('$', eq, '$')
+  } else {
+    eq
+  }
+}
+
+periodogram_info <- function(y) {
+  x <- y - mean(y)
+  n <- length(x)
+  I <- abs(stats::fft(x))^2 / n
+  half <- floor((n / 2) - 1)
+  f <- 0:half / n
+  P <- (4 / n) * I[1:(half + 1)]
+  list(f = f, P = P)
+}
+
+build_adf_table <- function(df, goalie_name) {
+  series_names <- c(gsax_ev = '$G_t$', sv_pct_ev = '$S_t$', team_xg_pct_ev = '$X_t$')
+  out <- NULL
+  for (v in names(series_names)) {
+    adf_out <- tseries::adf.test(df[[v]])
+    out <- rbind(
+      out,
+      data.frame(
+        Goalie = goalie_name,
+        Series = series_names[[v]],
+        DF = round(unname(adf_out$statistic), 4),
+        Lag = as.integer(adf_out$parameter),
+        P_Value = if (adf_out$p.value <= 0.01) '<0.01' else format_p(adf_out$p.value),
+        Decision = if (adf_out$p.value < 0.05) 'Reject $H_0$' else 'Do Not Reject $H_0$',
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  out
+}
+
+lead_ccf_info <- function(predictor, response, lag.max = 9) {
+  cc <- stats::ccf(as.numeric(predictor), as.numeric(response), plot = FALSE, lag.max = lag.max)
+  lag_vals <- as.numeric(cc$lag)
+  ccf_vals <- as.numeric(cc$acf)
+  keep <- lag_vals < 0
+  out <- data.frame(
+    Lead = -lag_vals[keep],
+    CCF = ccf_vals[keep]
+  )
+  out[order(out$Lead), , drop = FALSE]
+}
+
+lead_ccf_summary <- function(info, max_lead = 9) {
+  info2 <- info[info$Lead <= max_lead, , drop = FALSE]
+  idx <- which.max(abs(info2$CCF))
+  info2[idx, , drop = FALSE]
+}
+
+build_goalie_object <- function(df, goalie_name) {
+  df$t <- seq_len(nrow(df))
+  list(
+    data = df,
+    means = c(
+      gsax_ev = mean(df$gsax_ev),
+      sv_pct_ev = mean(df$sv_pct_ev),
+      team_xg_pct_ev = mean(df$team_xg_pct_ev)
+    ),
+    adf_table = build_adf_table(df, goalie_name),
+    acf_info = list(
+      g = stats::acf(df$gsax_ev, plot = FALSE, lag.max = 9),
+      s = stats::acf(df$sv_pct_ev, plot = FALSE, lag.max = 9),
+      x = stats::acf(df$team_xg_pct_ev, plot = FALSE, lag.max = 9)
+    ),
+    lead_ccf_sv = lead_ccf_info(df$sv_pct_ev, df$gsax_ev, lag.max = 9),
+    lead_ccf_x = lead_ccf_info(df$team_xg_pct_ev, df$gsax_ev, lag.max = 9)
+  )
+}
+
+build_lagged_regression <- function(obj, sv_lead, x_lead, g_lead = NULL) {
+  n <- nrow(obj$data)
+  L <- max(c(sv_lead, x_lead, if (is.null(g_lead)) 0 else g_lead))
+  dat <- data.frame(
+    t = obj$data$t[(L + 1):n],
+    g = obj$data$gsax_ev[(L + 1):n],
+    sv = obj$data$sv_pct_ev[(L + 1 - sv_lead):(n - sv_lead)],
+    xgf = obj$data$team_xg_pct_ev[(L + 1 - x_lead):(n - x_lead)]
+  )
+  if (!is.null(g_lead)) {
+    dat$gLag <- obj$data$gsax_ev[(L + 1 - g_lead):(n - g_lead)]
+  }
+  fit_form <- if (is.null(g_lead)) g ~ sv + xgf else g ~ sv + xgf + gLag
+  fit <- stats::lm(fit_form, data = dat)
+  coef_tab <- as.data.frame(summary(fit)$coefficients)
+  coef_tab$Term <- rownames(coef_tab)
+  rownames(coef_tab) <- NULL
+  coef_tab <- coef_tab[, c('Term', 'Estimate', 'Std. Error', 't value', 'Pr(>|t|)')]
+  names(coef_tab) <- c('Term', 'Estimate', 'Std_Error', 't_value', 'P_Value')
+  coef_tab$Term <- if (is.null(g_lead)) {
+    c(
+      'Intercept',
+      paste0('$S_{t-', sv_lead, '}$'),
+      paste0('$X_{t-', x_lead, '}$')
+    )
+  } else {
+    c(
+      'Intercept',
+      paste0('$S_{t-', sv_lead, '}$'),
+      paste0('$X_{t-', x_lead, '}$'),
+      paste0('$G_{t-', g_lead, '}$')
+    )
+  }
+  coef_tab$P_Value <- vapply(coef_tab$P_Value, format_p, character(1))
+  fit_tab <- fit_table(fit)
+  dat_fc <- dat
+  names(dat_fc)[names(dat_fc) == 'g'] <- 'Y'
+  fc_form <- if (is.null(g_lead)) Y ~ sv + xgf else Y ~ sv + xgf + gLag
+  fc_tab <- fcst_metrics(dat_fc, fc_form, split_t = aligned_split_t)
+  list(
+    sv_lead = sv_lead,
+    x_lead = x_lead,
+    g_lead = g_lead,
+    data = dat,
+    fit = fit,
+    coef_table = coef_tab,
+    fit_table = fit_tab,
+    fc_table = fc_tab,
+    residual_acf1 = as.numeric(stats::acf(stats::residuals(fit), plot = FALSE, lag.max = 1)$acf[2])
+  )
+}
+
+blackwood_trade_games <- blackwood_gbgs$game_number[blackwood_gbgs$team_change == 1]
+aligned_split_t <- min(which(blackwood_gbgs$team_abbr == 'COL'))
+
+add_blackwood_markers <- function() {
+  graphics::abline(v = blackwood_trade_games, col = 'black', lty = 3, lwd = 2)
+}
+
+plot_raw_series <- function(obj, goalie_name, add_trade_lines = FALSE) {
+  df <- obj$data
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(
+    mfrow = c(3, 1),
+    mar = c(4.2, 4.8, 3.1, 1.2),
+    mgp = c(2.2, 0.7, 0),
+    cex.main = 1.25,
+    cex.lab = 1.10,
+    cex.axis = 1.00,
+    family = plot_family
+  )
+  astsa::tsplot(
+    stats::ts(df$gsax_ev, start = 1, frequency = 1),
+    main = paste0(goalie_name, ': EV Game-by-Game GSAx'),
+    xlab = 'Career Game Number (t)',
+    ylab = 'GSAx at EV (Goals)',
+    col = 'darkgreen',
+    lwd = 2
+  )
+  if (add_trade_lines) add_blackwood_markers()
+  astsa::tsplot(
+    stats::ts(df$sv_pct_ev, start = 1, frequency = 1),
+    main = paste0(goalie_name, ': EV Game-by-Game Save Percentage'),
+    xlab = 'Career Game Number (t)',
+    ylab = 'SV% at EV',
+    col = 'firebrick',
+    lwd = 2
+  )
+  if (add_trade_lines) add_blackwood_markers()
+  astsa::tsplot(
+    stats::ts(df$team_xg_pct_ev, start = 1, frequency = 1),
+    main = paste0(goalie_name, ': Team EV xGF%'),
+    xlab = 'Career Game Number (t)',
+    ylab = 'Team xGF% at EV (Percent)',
+    col = 'navy',
+    lwd = 2
+  )
+  if (add_trade_lines) add_blackwood_markers()
+}
+
+plot_one_sided_acf <- function(acf_obj, main_text, col = 'navy') {
+  lag_vals <- round(as.numeric(acf_obj$lag), 0)
+  acf_vals <- as.numeric(acf_obj$acf)
+  plot(
+    lag_vals, acf_vals,
+    type = 'h',
+    lwd = 3,
+    col = col,
+    xlab = 'Lag',
+    ylab = 'ACF',
+    main = main_text,
+    ylim = c(min(c(acf_vals, 0)) - 0.05, 1.05),
+    xaxt = 'n'
+  )
+  axis(1, at = seq(min(lag_vals), max(lag_vals), by = 2))
+  points(lag_vals, acf_vals, pch = 16, col = col)
+  abline(h = 0, col = 'gray40')
+}
+
+plot_response_acf <- function(obj, goalie_name) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(
+    mfrow = c(1, 1),
+    mar = c(4.2, 4.8, 3.1, 1.2),
+    mgp = c(2.2, 0.7, 0),
+    cex.main = 1.25,
+    cex.lab = 1.10,
+    cex.axis = 1.00,
+    family = plot_family
+  )
+  plot_one_sided_acf(obj$acf_info$g, paste0(goalie_name, ': ACF of GSAx'), 'darkgreen')
+}
+
+plot_lead_ccf <- function(info, main_text, col) {
+  plot(
+    info$Lead, info$CCF,
+    type = 'h',
+    lwd = 3,
+    col = col,
+    xlab = 'Predictor Lead (Games)',
+    ylab = 'CCF',
+    main = main_text,
+    ylim = c(min(c(info$CCF, 0)) - 0.05, max(c(info$CCF, 0)) + 0.05),
+    xaxt = 'n'
+  )
+  axis(1, at = info$Lead)
+  points(info$Lead, info$CCF, pch = 16, col = col)
+  abline(h = 0, col = 'gray40')
+}
+
+plot_goalie_ccf <- function(obj, goalie_name) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(
+    mfrow = c(2, 1),
+    mar = c(3.8, 4.2, 2.8, 1.2),
+    mgp = c(2.2, 0.7, 0),
+    cex.main = 1.05,
+    cex.lab = 0.95,
+    cex.axis = 0.9,
+    family = plot_family
+  )
+  plot_lead_ccf(obj$lead_ccf_sv, paste0(goalie_name, ': Lead CCF of Save Percentage and GSAx'), 'firebrick')
+  plot_lead_ccf(obj$lead_ccf_x, paste0(goalie_name, ': Lead CCF of Team xGF% and GSAx'), 'navy')
+}
+
+make_lagged_pair <- function(response, predictor, lead) {
+  n <- length(response)
+  data.frame(
+    y = response[(lead + 1):n],
+    x = predictor[1:(n - lead)]
+  )
+}
+
+plot_lagged_scatter_grid <- function(obj, goalie_name, predictor = c('sv', 'xgf'), leads = 1:9) {
+  predictor <- match.arg(predictor)
+  y <- obj$data$gsax_ev
+  x <- if (predictor == 'sv') obj$data$sv_pct_ev else obj$data$team_xg_pct_ev
+  point_col <- if (predictor == 'sv') 'firebrick' else 'navy'
+  xlab_base <- if (predictor == 'sv') 'Lagged Save Percentage' else 'Lagged Team xGF%'
+  main_base <- if (predictor == 'sv') 'GSAx vs Lagged Save Percentage' else 'GSAx vs Lagged Team xGF%'
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(
+    mfrow = c(3, 3),
+    mar = c(4.0, 4.0, 2.4, 0.8),
+    mgp = c(2.2, 0.7, 0),
+    cex.main = 0.92,
+    cex.lab = 0.88,
+    cex.axis = 0.85,
+    family = plot_family
+  )
+  for (lead in leads) {
+    pair <- make_lagged_pair(y, x, lead)
+    corr_xy <- stats::cor(pair$x, pair$y, use = 'complete.obs')
+    graphics::plot(
+      pair$x, pair$y,
+      pch = 16, col = point_col,
+      main = paste0(goalie_name, ': ', main_base, ' (Lead ', lead, ')'),
+      xlab = paste0(xlab_base, ', lead = ', lead),
+      ylab = 'Game-by-Game GSAx at EV (Goals)',
+      sub = paste0('Correlation = ', format(round(corr_xy, 4), nsmall = 4))
+    )
+    graphics::abline(stats::lm(y ~ x, data = pair), col = 'black', lwd = 2)
+  }
+}
+
+plot_model_diagnostics <- function(model_obj, goalie_name) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(
+    mfrow = c(1, 2),
+    mar = c(4.2, 4.2, 2.6, 1.0),
+    mgp = c(2.2, 0.7, 0),
+    cex.main = 1.00,
+    cex.lab = 0.95,
+    cex.axis = 0.9,
+    family = plot_family
+  )
+  astsa::tsplot(
+    stats::ts(stats::residuals(model_obj$fit), start = min(model_obj$data$t), frequency = 1),
+    main = paste0(goalie_name, ': Residuals from Lagged Regression'),
+    xlab = 'Career Game Number (t)',
+    ylab = 'Residuals (Goals)',
+    col = 'black',
+    lwd = 2
+  )
+  graphics::abline(h = 0, lty = 2)
+  graphics::plot(
+    stats::fitted(model_obj$fit),
+    stats::residuals(model_obj$fit),
+    pch = 16,
+    col = 'gray20',
+    main = paste0(goalie_name, ': Residuals vs Fitted'),
+    xlab = 'Fitted Values',
+    ylab = 'Residuals'
+  )
+  graphics::abline(h = 0, lty = 2)
+}
+
+blackwood_project <- build_goalie_object(blackwood_gbgs, 'Blackwood')
+shesterkin_project <- build_goalie_object(shesterkin_gbgs, 'Shesterkin')
+
+project_adf_table <- rbind(blackwood_project$adf_table, shesterkin_project$adf_table)
+
+blackwood_sv_lead_summary <- lead_ccf_summary(blackwood_project$lead_ccf_sv, max_lead = 9)
+blackwood_x_lead_summary <- lead_ccf_summary(blackwood_project$lead_ccf_x, max_lead = 9)
+shesterkin_sv_lead_summary <- lead_ccf_summary(shesterkin_project$lead_ccf_sv, max_lead = 9)
+shesterkin_x_lead_summary <- lead_ccf_summary(shesterkin_project$lead_ccf_x, max_lead = 9)
+
+blackwood_lag_model <- build_lagged_regression(blackwood_project, sv_lead = 4, x_lead = 8, g_lead = 4)
+shesterkin_lag_model <- build_lagged_regression(shesterkin_project, sv_lead = 2, x_lead = 4, g_lead = 2)
+```
+
+For Problem 3, I use the three game-by-game even-strength series
+\[
+G_t = \texttt{Goals Saved Above Expected}, \qquad S_t = \texttt{Save \%}, \qquad X_t = \texttt{Team xGF\%}.
+\]
+Here, \(G_t\) is measured in goals, \(S_t\) is a proportion, and \(X_t\) is measured in percentage points. The time index \(t\) is the matched career game number, so for both goalies \(t = 1,2,\ldots,`r matched_n`\). Blackwood’s matched sample covers `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)`, with `r sum(blackwood_gbgs$team_abbr == 'NJD')` games for New Jersey, `r sum(blackwood_gbgs$team_abbr == 'SJS')` for San Jose, and `r sum(blackwood_gbgs$team_abbr == 'COL')` for Colorado. Shesterkin’s matched sample covers `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)`, and all `r nrow(shesterkin_gbgs)` games are with the Rangers. I went back-and-forth on this throughout the previous homeworks and the presentation, but I've settled that using game-by-game \(G_t\) as the response makes more sense here than using cumulative GSAx, because the cumulative series mechanically builds in low-frequency drift. The predictor choice also makes sense, I believe: \(X_t\) measures the team process environment, while \(S_t\) measures the goalie’s game-level stopping outcome. However, for predictive use, only lagged predictor values are admissible. Therefore, in parts (d) and (e), I interpret only predictor leads and do not use same-game or future predictor information.
+
+\newpage
+
+## Problem 3 (a)
+
+\begin{problem}[Problem 3 (a)]
+Report your time series plot for all study variables. Using these plots share if your time series is non-stationary and justify.
+\end{problem}
+
+```{r, fig.width=10, fig.height=10, out.width='\\linewidth'}
+# Raw game-by-game Blackwood series.
+with_family({
+  plot_raw_series(blackwood_project, 'Blackwood', add_trade_lines = TRUE)
+})
+```
+
+```{r, fig.width=10, fig.height=10, out.width='\\linewidth'}
+# Raw game-by-game Shesterkin series.
+with_family({
+  plot_raw_series(shesterkin_project, 'Shesterkin', add_trade_lines = FALSE)
+})
+```
+
+### Blackwood
+
+- \(G_t\): This is Blackwood’s game-by-game even-strength GSAx series, measured in goals, over `r matched_n` matched career games from `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)`. The plot does not show a sustained trend, either linear or nonlinear. Instead, it oscillates around a roughly stable center near \(`r round(blackwood_project$means['gsax_ev'], 4)`\) goals, with isolated positive and negative spikes. There is no repeated seasonal pattern in the game index. Since this is sports performance, a stable seasonal cycle is not expected conceptually as opposed to something like temperature, for example. The variability looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity (you may be able to deduce minor fanning out). The series is not especially volatile. The statistical range is `r round(min(blackwood_gbgs$gsax_ev), 4)` to `r round(max(blackwood_gbgs$gsax_ev), 4)`, so the total range is `r round(diff(range(blackwood_gbgs$gsax_ev)), 4)` goals.
+- \(S_t\): This is Blackwood’s game-by-game even-strength save percentage series, measured as a proportion on \([0,1]\). The mean behavior appears approximately stable around \(`r round(blackwood_project$means['sv_pct_ev'], 4)`\), with no clear linear or nonlinear trend through the matched game index. There is no visible seasonal pattern. The series has a few sharp downward games, but these appear as isolated dips rather than a repeating cycle. The spread appears reasonably constant over time, so the variance looks approximately homoscedastic rather than heteroscedastic (again, you may be able to deduce minor fanning out). There is no strong visual evidence of volatility clustering, although you be able to deduce a few outliers.  The statistical range is `r round(min(blackwood_gbgs$sv_pct_ev), 4)` to `r round(max(blackwood_gbgs$sv_pct_ev), 4)`, so the total range is `r round(diff(range(blackwood_gbgs$sv_pct_ev)), 4)`.
+- \(X_t\): This is Blackwood’s team game-by-game even-strength xGF\% series, measured in percentage points. The plot fluctuates around \(`r round(blackwood_project$means['team_xg_pct_ev'], 2)`\) percent and does not show a sustained deterministic trend (if you break it into pieces, you can see a linear upward trend towards the latter); the franchise changes may create local level differences, but the overall pattern is still irregular rather than trending. There is no visual seasonality. The ups and downs appear irregular from game to game and do not repeat in a fixed cycle. The variance looks approximately constant over time, so I do not see strong heteroscedasticity or volatility clustering in this series. The statistical range is `r round(min(blackwood_gbgs$team_xg_pct_ev), 2)` to `r round(max(blackwood_gbgs$team_xg_pct_ev), 2)`, so the total range is `r round(diff(range(blackwood_gbgs$team_xg_pct_ev)), 2)` percentage points.
+- Overall conclusion: From the time-series plots, the Blackwood series do not look non-stationary. The means appear approximately time-invariant, and the spreads are fairly stable.
+
+### Shesterkin
+
+- \(G_t\): This is Shesterkin’s game-by-game even-strength GSAx series, measured in goals, over `r matched_n` matched career games from `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)`. The plot fluctuates around a stable positive center near \(`r round(shesterkin_project$means['gsax_ev'], 4)`\) goals and does not show a visible linear or nonlinear trend. There is no visible seasonal cycle. The spikes are irregular rather than repeating. The spread appears fairly stable over time, so the variance looks approximately homoscedastic (again, you may be able to deduce minor fanning out). There is no sustained volatility clustering. The statistical range is `r round(min(shesterkin_gbgs$gsax_ev), 4)` to `r round(max(shesterkin_gbgs$gsax_ev), 4)`, so the total range is `r round(diff(range(shesterkin_gbgs$gsax_ev)), 4)` goals.
+- \(S_t\): This is Shesterkin’s game-by-game even-strength save percentage series, measured as a proportion. The series fluctuates around \(`r round(shesterkin_project$means['sv_pct_ev'], 4)`\), with occasional large downward games, but it does not show a systematic linear or nonlinear trend. There is no clear repeated seasonal pattern. The spread appears approximately constant over time, so the series looks homoscedastic rather than heteroscedastic (again, you may be able to deduce minor fanning out). There is no strong visual evidence of volatility clustering, although there are some obvious outliers. The statistical range is `r round(min(shesterkin_gbgs$sv_pct_ev), 4)` to `r round(max(shesterkin_gbgs$sv_pct_ev), 4)`, so the total range is `r round(diff(range(shesterkin_gbgs$sv_pct_ev)), 4)`.
+- \(X_t\): This is Shesterkin’s team game-by-game even-strength xGF\% series, measured in percentage points. The plot oscillates around \(`r round(shesterkin_project$means['team_xg_pct_ev'], 2)`\) percent, and the movement appears irregular rather than trending. There is no visible seasonal pattern. The spread looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity or volatility clustering. The statistical range is `r round(min(shesterkin_gbgs$team_xg_pct_ev), 2)` to `r round(max(shesterkin_gbgs$team_xg_pct_ev), 2)`, so the total range is `r round(diff(range(shesterkin_gbgs$team_xg_pct_ev)), 2)` percentage points.
+- Overall conclusion: From the plots, the Shesterkin series also appear stationary. The means look approximately stable, and the variances are fairly constant.
+
+\newpage
+
+## Problem 3 (b)
+
+\begin{problem}[Problem 3 (b)]
+Use the ADF test to check if each of your time series is stationary or not.
+\end{problem}
+
+For each series, I use the Augmented Dickey-Fuller test with
+\[
+H_0: \text{the series is non-stationary}, \qquad
+H_a: \text{the series is stationary},
+\]
+at significance level \(\alpha = 0.05\).
+
+```{r}
+# Run the ADF tests for the six raw game-by-game series.
+tseries::adf.test(blackwood_gbgs$gsax_ev)
+tseries::adf.test(blackwood_gbgs$sv_pct_ev)
+tseries::adf.test(blackwood_gbgs$team_xg_pct_ev)
+tseries::adf.test(shesterkin_gbgs$gsax_ev)
+tseries::adf.test(shesterkin_gbgs$sv_pct_ev)
+tseries::adf.test(shesterkin_gbgs$team_xg_pct_ev)
+```
+
+```{r adf-results-table, echo=FALSE, results='asis'}
+table_latex(
+  project_adf_table,
+  digits = 4,
+  caption = 'ADF Test Results',
+  size = '\\scriptsize',
+  col_names = c('Goalie', 'Series', 'DF', 'Lag', 'P-value', 'Decision')
+)
+```
+
+Using the reported test statistics and p-values:
+
+- Blackwood \(G_t\): DF statistic \(=`r blackwood_project$adf_table$DF[blackwood_project$adf_table$Series == '$G_t$']`\), lag order \(=`r blackwood_project$adf_table$Lag[blackwood_project$adf_table$Series == '$G_t$']`\), p-value `r blackwood_project$adf_table$P_Value[blackwood_project$adf_table$Series == '$G_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(G_t\) is stationary.
+- Blackwood \(S_t\): DF statistic \(=`r blackwood_project$adf_table$DF[blackwood_project$adf_table$Series == '$S_t$']`\), lag order \(=`r blackwood_project$adf_table$Lag[blackwood_project$adf_table$Series == '$S_t$']`\), p-value `r blackwood_project$adf_table$P_Value[blackwood_project$adf_table$Series == '$S_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(S_t\) is stationary.
+- Blackwood \(X_t\): DF statistic \(=`r blackwood_project$adf_table$DF[blackwood_project$adf_table$Series == '$X_t$']`\), lag order \(=`r blackwood_project$adf_table$Lag[blackwood_project$adf_table$Series == '$X_t$']`\), p-value `r blackwood_project$adf_table$P_Value[blackwood_project$adf_table$Series == '$X_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(X_t\) is stationary.
+- Shesterkin \(G_t\): DF statistic \(=`r shesterkin_project$adf_table$DF[shesterkin_project$adf_table$Series == '$G_t$']`\), lag order \(=`r shesterkin_project$adf_table$Lag[shesterkin_project$adf_table$Series == '$G_t$']`\), p-value `r shesterkin_project$adf_table$P_Value[shesterkin_project$adf_table$Series == '$G_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(G_t\) is stationary.
+- Shesterkin \(S_t\): DF statistic \(=`r shesterkin_project$adf_table$DF[shesterkin_project$adf_table$Series == '$S_t$']`\), lag order \(=`r shesterkin_project$adf_table$Lag[shesterkin_project$adf_table$Series == '$S_t$']`\), p-value `r shesterkin_project$adf_table$P_Value[shesterkin_project$adf_table$Series == '$S_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(S_t\) is stationary.
+- Shesterkin \(X_t\): DF statistic \(=`r shesterkin_project$adf_table$DF[shesterkin_project$adf_table$Series == '$X_t$']`\), lag order \(=`r shesterkin_project$adf_table$Lag[shesterkin_project$adf_table$Series == '$X_t$']`\), p-value `r shesterkin_project$adf_table$P_Value[shesterkin_project$adf_table$Series == '$X_t$']`. Since \(p < 0.05\), reject \(H_0\). Therefore, \(X_t\) is stationary.
+
+\newpage
+
+## Problem 3 (c)
+
+\begin{problem}[Problem 3 (c)]
+Is there a trend in your time series (for each variable)? Why? If yes, then model the trend present in all the variables and report the fitted trend models.
+\end{problem}
+
+From part (a), none of the six raw game-by-game series shows a clear deterministic trend, and from part (b), all six ADF tests reject non-stationarity. Therefore, I do not fit nonconstant deterministic trend models in this section. Instead, I treat each series as fluctuating around a constant mean:
+\[
+Y_t = \mu_Y + W_t.
+\]
+
+```{r}
+# Estimated constant means for the six game-by-game series.
+rbind(
+  Blackwood = round(blackwood_project$means, 6),
+  Shesterkin = round(shesterkin_project$means, 6)
+)
+```
+
+For Blackwood, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= `r format(round(blackwood_project$means['gsax_ev'], 6), nsmall = 6)` + W_t,\\
+S_t &= `r format(round(blackwood_project$means['sv_pct_ev'], 6), nsmall = 6)` + W_t,\\
+X_t &= `r format(round(blackwood_project$means['team_xg_pct_ev'], 6), nsmall = 6)` + W_t.
+\end{aligned}
+\]
+
+For Shesterkin, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= `r format(round(shesterkin_project$means['gsax_ev'], 6), nsmall = 6)` + W_t,\\
+S_t &= `r format(round(shesterkin_project$means['sv_pct_ev'], 6), nsmall = 6)` + W_t,\\
+X_t &= `r format(round(shesterkin_project$means['team_xg_pct_ev'], 6), nsmall = 6)` + W_t.
+\end{aligned}
+\]
+
+So there is no nonconstant deterministic trend to remove. Also, there is no seasonal component to remove here. Since \(t\) is a game index rather than a monthly, quarterly, or weekly calendar time scale, there is no fixed seasonal frequency built into the series conceptually. This is also consistent with the original time-series plots in part (a), which do not show any repeated seasonal cycle. Therefore, in parts (d) and (e), the detrended and deseasonalized series are just the original series in their original units.
+
+\newpage
+
+## Problem 3 (d)
+
+\begin{problem}[Problem 3 (d)]
+Using the detrended and deseasonalized variables, make CCF plot and scatterplots for your response and predictors (one at a time) and discuss the relationship.
+\end{problem}
+
+Since only past predictor values are usable for forecasting, I interpret only predictor leads in this section. In \(\texttt{ccf}(x,y)\), negative lags correspond to the predictor leading the response. So the CCF plots below display only those negative-lag correlations, rewritten as positive lead lengths in games.
+
+### Blackwood
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Lead-only CCF plots for Blackwood.
+with_family({
+  plot_goalie_ccf(blackwood_project, 'Blackwood')
+})
+```
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Scatterplots of lagged save percentage against future GSAx for Blackwood.
+with_family({
+  plot_lagged_scatter_grid(blackwood_project, 'Blackwood', predictor = 'sv', leads = 1:9)
+})
+```
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Scatterplots of lagged team xGF% against future GSAx for Blackwood.
+with_family({
+  plot_lagged_scatter_grid(blackwood_project, 'Blackwood', predictor = 'xgf', leads = 1:9)
+})
+```
+
+For predictive lead-lag structure, the usable lead-side CCF is weak for both predictors. Restricting attention to leads 1 through 9 games, the largest save-percentage lead correlation has magnitude only `r round(abs(blackwood_sv_lead_summary$CCF), 4)` and occurs at lead `r blackwood_sv_lead_summary$Lead`, while the largest team-xGF\% lead correlation has magnitude only `r round(abs(blackwood_x_lead_summary$CCF), 4)` and occurs at lead `r blackwood_x_lead_summary$Lead`. The 3 by 3 lead-by-lead scatterplot grids for each predictor are also fairly diffuse, with no strong or stable linear pattern across leads 1 through 9. Even though these relations are weak, in sports data, I can only really take what I'm given, so for part (e), I will carry forward lead 4 for save percentage and lead 8 for team xGF\%.
+
+```{r, fig.width=10, fig.height=4.8, out.width='\\linewidth'}
+# ACF of the response series for possible autoregressive carryover.
+with_family({
+  plot_response_acf(blackwood_project, 'Blackwood')
+})
+```
+
+At the end, I also check the ACF of the response because that is the only series for which a lagged autoregressive term might be added to the regression model. For Blackwood, the full ACF through lag 9 does not show any especially strong spike, so there is no strong autoregressive signal. Still, if I take the largest visible response-side candidate, it is around lag 4 with \(\rho(4) \approx `r round(as.numeric(blackwood_project$acf_info$g$acf[5]), 4)`\), so I carry \(G_{t-4}\) into part (e) as the most plausible extra response lag.
+
+### Shesterkin
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Lead-only CCF plots for Shesterkin.
+with_family({
+  plot_goalie_ccf(shesterkin_project, 'Shesterkin')
+})
+```
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Scatterplots of lagged save percentage against future GSAx for Shesterkin.
+with_family({
+  plot_lagged_scatter_grid(shesterkin_project, 'Shesterkin', predictor = 'sv', leads = 1:9)
+})
+```
+
+```{r, fig.width=10, fig.height=8, out.width='\\linewidth'}
+# Scatterplots of lagged team xGF% against future GSAx for Shesterkin.
+with_family({
+  plot_lagged_scatter_grid(shesterkin_project, 'Shesterkin', predictor = 'xgf', leads = 1:9)
+})
+```
+
+On the predictive lead side of the CCF, save percentage shows a modest relationship with future GSAx. Over leads 1 through 9 games, the largest save-percentage lead correlation is `r round(shesterkin_sv_lead_summary$CCF, 4)` at lead `r shesterkin_sv_lead_summary$Lead`, while team xGF\% remains weak, with largest absolute correlation only `r round(abs(shesterkin_x_lead_summary$CCF), 4)` at lead `r shesterkin_x_lead_summary$Lead`. The 3 by 3 save-percentage scatterplot grid shows that the negative pattern is most visible at the shorter leads, especially around the selected two-game lead, while the team-xGF\% grid remains diffuse throughout. Again, even though the lead relations are not large in magnitude, I will carry forward lead 2 for save percentage and lead 4 for team xGF\%.
+
+```{r, fig.width=10, fig.height=4.8, out.width='\\linewidth'}
+# ACF of the response series for possible autoregressive carryover.
+with_family({
+  plot_response_acf(shesterkin_project, 'Shesterkin')
+})
+```
+
+At the end, I also check the ACF of the response because that is the only series for which a lagged autoregressive term might be added to the regression model. For Shesterkin, the full ACF is more informative than just lag 1: lag 1 is small \(\rho(1) \approx `r round(as.numeric(shesterkin_project$acf_info$g$acf[2]), 4)`\), but there is a noticeable negative spike at lag 2 with \(\rho(2) \approx `r round(as.numeric(shesterkin_project$acf_info$g$acf[3]), 4)`\). So \(G_{t-2}\) is at least a plausible additional candidate regressor for part (e).
+
+\newpage
+
+## Problem 3 (e)
+
+\begin{problem}[Problem 3 (e)]
+Propose and fit a time series regression model for your detrended and deseasonalized response variable. Report the fitted model and discuss goodness of fit of this model.
+\end{problem}
+
+For the forecast-accuracy summaries reported below, I use the aligned train-test split at matched career game number \(t=`r aligned_split_t`\). This is Blackwood's first Colorado game in the matched sample, so observations with \(t < `r aligned_split_t`\) form the training set and observations with \(t \ge `r aligned_split_t`\) form the test set for both goalies.
+
+### Blackwood Model
+
+For Blackwood, I use the lag choices suggested by part (d), namely lead 4 for save percentage, lead 8 for team xGF\%, and the strongest response-side ACF candidate \(G_{t-4}\). The model is
+\[
+G_t = \beta_0 + \beta_1 S_{t-4} + \beta_2 X_{t-8} + \beta_3 G_{t-4} + W_t.
+\]
+The fitted equation is
+\[
+`r equation_from_fit(blackwood_lag_model$fit, '\\widehat{G_t}', c('sv' = 'S_{t-4}', 'xgf' = 'X_{t-8}', 'gLag' = 'G_{t-4}'), math_mode = FALSE)`
+\]
+where \(G_t\) is Blackwood's game-by-game even-strength GSAx in goals, \(S_t\) is Blackwood's game-by-game even-strength save percentage as a proportion, and \(X_t\) is Blackwood's team game-by-game even-strength xGF\% in percentage points. Since the largest lag used here is 8, the aligned fitted sample has \(n=`r nrow(blackwood_lag_model$data)`\) games.
+
+- \(\hat{\beta}_1=`r round(stats::coef(blackwood_lag_model$fit)['sv'], 4)`\) means a 0.01 increase in \(S_{t-4}\) is associated with an average change of `r round(0.01 * stats::coef(blackwood_lag_model$fit)['sv'], 4)` goals in current \(G_t\), holding \(X_{t-8}\) and \(G_{t-4}\) fixed.
+- \(\hat{\beta}_2=`r round(stats::coef(blackwood_lag_model$fit)['xgf'], 4)`\) means a one-percentage-point increase in \(X_{t-8}\) is associated with an average change of `r round(stats::coef(blackwood_lag_model$fit)['xgf'], 4)` goals in current \(G_t\), holding the other regressors fixed.
+- \(\hat{\beta}_3=`r round(stats::coef(blackwood_lag_model$fit)['gLag'], 4)`\) means a one-goal increase in \(G_{t-4}\) is associated with an average change of `r round(stats::coef(blackwood_lag_model$fit)['gLag'], 4)` goals in current \(G_t\), holding \(S_{t-4}\) and \(X_{t-8}\) fixed.
+
+```{r}
+# Fit the Blackwood lagged regression and inspect the summary.
+blackwood_lag_model$fit
+summary(blackwood_lag_model$fit)
+```
+
+```{r blackwood-lag-reg-coef, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_lag_model$coef_table,
+  digits = 6,
+  caption = 'Blackwood Lagged Regression Coefficients',
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate', 'Std. Error', 't Value', 'P-value')
+)
+```
+
+```{r blackwood-lag-reg-fit, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_lag_model$fit_table,
+  digits = 4,
+  caption = 'Blackwood Lagged Regression Fit Criteria',
+  size = '\\scriptsize',
+  col_names = c('\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+```
+
+```{r blackwood-lag-reg-fc, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_lag_model$fc_table,
+  digits = 4,
+  caption = 'Blackwood Lagged Regression Forecast Accuracy',
+  size = '\\scriptsize',
+  col_names = c('ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+```{r, fig.width=10, fig.height=4.8, out.width='\\linewidth'}
+# Diagnostic plots for the Blackwood lagged regression.
+with_family({
+  plot_model_diagnostics(blackwood_lag_model, 'Blackwood')
+})
+```
+
+For Blackwood, the final model still fits weakly even after using the strongest available lagged terms from part (d). The adjusted \(R^2\) is only `r round(blackwood_lag_model$fit_table$R2a, 4)`, the overall F-test p-value is `r blackwood_lag_model$fit_table$Fp`, and the residual standard error is `r round(summary(blackwood_lag_model$fit)$sigma, 4)` goals. None of the three lagged regressors is statistically significant at the 5\% level, and the diagnostic plots do not suggest a strong systematic relation. Overall, Blackwood’s final lagged regression is not a particularly strong model, even after taking the most favorable lead and response-lag choices from part (d).
+
+### Shesterkin Model
+
+For Shesterkin, I again use the lag choices suggested by part (d), namely lead 2 for save percentage, lead 4 for team xGF\%, and the response-side ACF candidate \(G_{t-2}\). The model is
+\[
+G_t = \beta_0 + \beta_1 S_{t-2} + \beta_2 X_{t-4} + \beta_3 G_{t-2} + W_t.
+\]
+The fitted equation is
+\[
+`r equation_from_fit(shesterkin_lag_model$fit, '\\widehat{G_t}', c('sv' = 'S_{t-2}', 'xgf' = 'X_{t-4}', 'gLag' = 'G_{t-2}'), math_mode = FALSE)`
+\]
+where \(G_t\) is Shesterkin's game-by-game even-strength GSAx in goals, \(S_t\) is Shesterkin's game-by-game even-strength save percentage as a proportion, and \(X_t\) is Shesterkin's team game-by-game even-strength xGF\% in percentage points. Since the largest lag used here is 4, the aligned fitted sample has \(n=`r nrow(shesterkin_lag_model$data)`\) games.
+
+- \(\hat{\beta}_1=`r round(stats::coef(shesterkin_lag_model$fit)['sv'], 4)`\) means a 0.01 increase in \(S_{t-2}\) is associated with an average change of `r round(0.01 * stats::coef(shesterkin_lag_model$fit)['sv'], 4)` goals in current \(G_t\), holding \(X_{t-4}\) and \(G_{t-2}\) fixed.
+- \(\hat{\beta}_2=`r round(stats::coef(shesterkin_lag_model$fit)['xgf'], 4)`\) means a one-percentage-point increase in \(X_{t-4}\) is associated with an average change of `r round(stats::coef(shesterkin_lag_model$fit)['xgf'], 4)` goals in current \(G_t\), holding the other regressors fixed.
+- \(\hat{\beta}_3=`r round(stats::coef(shesterkin_lag_model$fit)['gLag'], 4)`\) means a one-goal increase in \(G_{t-2}\) is associated with an average change of `r round(stats::coef(shesterkin_lag_model$fit)['gLag'], 4)` goals in current \(G_t\), holding \(S_{t-2}\) and \(X_{t-4}\) fixed.
+
+```{r}
+# Fit the Shesterkin lagged regression and inspect the summary.
+shesterkin_lag_model$fit
+summary(shesterkin_lag_model$fit)
+```
+
+```{r shesterkin-lag-reg-coef, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_lag_model$coef_table,
+  digits = 6,
+  caption = 'Shesterkin Lagged Regression Coefficients',
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate', 'Std. Error', 't Value', 'P-value')
+)
+```
+
+```{r shesterkin-lag-reg-fit, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_lag_model$fit_table,
+  digits = 4,
+  caption = 'Shesterkin Lagged Regression Fit Criteria',
+  size = '\\scriptsize',
+  col_names = c('\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+```
+
+```{r shesterkin-lag-reg-fc, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_lag_model$fc_table,
+  digits = 4,
+  caption = 'Shesterkin Lagged Regression Forecast Accuracy',
+  size = '\\scriptsize',
+  col_names = c('ME', 'MPE', 'MSE', 'MAE', 'MAPE')
+)
+```
+
+```{r, fig.width=10, fig.height=4.8, out.width='\\linewidth'}
+# Diagnostic plots for the Shesterkin lagged regression.
+with_family({
+  plot_model_diagnostics(shesterkin_lag_model, 'Shesterkin')
+})
+```
+
+For Shesterkin, the final lagged model performs better than Blackwood’s, although it is still only modest in strength. The lagged save-percentage coefficient remains the main significant term, while the lagged team-xGF\% term and the added \(G_{t-2}\) term are not statistically significant in the full regression. The adjusted \(R^2\) is `r round(shesterkin_lag_model$fit_table$R2a, 4)`, the overall F-test p-value is `r shesterkin_lag_model$fit_table$Fp`, and the residual standard error is `r round(summary(shesterkin_lag_model$fit)$sigma, 4)` goals. Overall, this is a modest but defensible model for Shesterkin.

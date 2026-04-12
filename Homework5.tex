@@ -80,6 +80,7 @@
 \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 \usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
 \usepackage{etoolbox}
@@ -223,24 +224,18 @@
 
 \section{Disclosure}\label{disclosure}
 
-GPT-5.4 Codex was used to create the \texttt{YAML} portion and some \texttt{LaTeX} code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup chunk, chunk options were set for the document and simple helper functions were defined for tables and ACF plots.
+GPT-5.4 (High) on Codex was used to create the \texttt{YAML} portion and some \texttt{LaTeX} code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting and formatting code blocks.
 
 \newpage
 
 \section{Problem 1}\label{problem-1}
 
-\begin{problem}[Problem-1 (20 points)]
+\begin{problem}[Problem 1]
 Suppose a time series follows the following model:
 \[
 X_t = W_t - 0.2W_{t-2},
 \]
 where \(W_t \sim WN(0,\sigma_w^2)\), that is, \(\{W_t\}\) is a white noise with mean \(0\) and variance \(\sigma_w^2\).
-\begin{enumerate}[label=(\alph*)]
-\item Determine its mean.
-\item Determine its Auto-Covariance Function (ACVF).
-\item Find and plot the Auto-Correlation Function (ACF).
-\item Is the process stationary, justify?
-\end{enumerate}
 \end{problem}
 
 \newpage
@@ -405,7 +400,7 @@ So the ACF has one spike of height \(1\) at lag \(0\), two negative spikes of he
 \subsection{Problem 1 (d)}\label{problem-1-d}
 
 \begin{problem}[Problem 1 (d)]
-Is the process stationary, justify?
+Is the process stationary? Justify.
 \end{problem}
 
 Yes, \(\{X_t\}\) is weakly stationary because of the following:
@@ -439,17 +434,11 @@ which is also constant over time. Therefore, the process satisfies both conditio
 
 \section{Problem 2}\label{problem-2}
 
-\begin{problem}[Problem 2 (30 points)]
+\begin{problem}[Problem 2]
 For the following MA process
 \[
 X_t = W_{t-1} + 2W_t + W_{t+1}
 \]
-\begin{enumerate}[label=(\alph*)]
-\item Determine its mean.
-\item Determine its Auto-Covariance Function (ACVF).
-\item Find and plot the Auto-Correlation Function (ACF).
-\item Is the process stationary, justify?
-\end{enumerate}
 \end{problem}
 
 \newpage
@@ -679,7 +668,7 @@ So the ACF has a spike of height \(1\) at lag \(0\), positive spikes of height \
 \subsection{Problem 2 (d)}\label{problem-2-d}
 
 \begin{problem}[Problem 2 (d)]
-Is the process stationary, justify?
+Is the process stationary? Justify.
 \end{problem}
 
 Yes, \(\{X_t\}\) is weakly stationary because of the following:
@@ -709,5 +698,659 @@ At lag \(h=0\), the ACVF is the variance, so
 \sigma_X^2(t) = \sigma_X^2 = \gamma_X(0) = 6\sigma_w^2,
 \]
 which is constant over time. Therefore, the process satisfies both conditions for weak stationarity. Hence, \(\{X_t\}\) is stationary.
+
+\newpage
+
+\section{Problem 3}\label{problem-3}
+
+\begin{problem}[Problem 3]
+For your data analysis project, do the following:
+\end{problem}
+
+For Problem 3, I use the three game-by-game even-strength series
+\[
+G_t = \texttt{Goals Saved Above Expected}, \qquad S_t = \texttt{Save \%}, \qquad X_t = \texttt{Team xGF\%}.
+\]
+Here, \(G_t\) is measured in goals, \(S_t\) is a proportion, and \(X_t\) is measured in percentage points. The time index \(t\) is the matched career game number, so for both goalies \(t = 1,2,\ldots,285\). Blackwood's matched sample covers 2018-12-18 through 2026-03-28, with 152 games for New Jersey, 63 for San Jose, and 70 for Colorado. Shesterkin's matched sample covers 2020-01-07 through 2025-11-04, and all 285 games are with the Rangers. I went back-and-forth on this throughout the previous homeworks and the presentation, but I've settled that using game-by-game \(G_t\) as the response makes more sense here than using cumulative GSAx, because the cumulative series mechanically builds in low-frequency drift. The predictor choice also makes sense, I believe: \(X_t\) measures the team process environment, while \(S_t\) measures the goalie's game-level stopping outcome. However, for predictive use, only lagged predictor values are admissible. Therefore, in parts (d) and (e), I interpret only predictor leads and do not use same-game or future predictor information.
+
+\newpage
+
+\subsection{Problem 3 (a)}\label{problem-3-a}
+
+\begin{problem}[Problem 3 (a)]
+Report your time series plot for all study variables. Using these plots share if your time series is non-stationary and justify.
+\end{problem}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Raw game{-}by{-}game Blackwood series.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_raw\_series}\NormalTok{(blackwood\_project, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{, }\AttributeTok{add\_trade\_lines =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-5-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Raw game{-}by{-}game Shesterkin series.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_raw\_series}\NormalTok{(shesterkin\_project, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{, }\AttributeTok{add\_trade\_lines =} \ConstantTok{FALSE}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-6-1} \end{center}
+
+\subsubsection{Blackwood}\label{blackwood}
+
+\begin{itemize}
+\tightlist
+\item
+  \(G_t\): This is Blackwood's game-by-game even-strength GSAx series, measured in goals, over 285 matched career games from 2018-12-18 through 2026-03-28. The plot does not show a sustained trend, either linear or nonlinear. Instead, it oscillates around a roughly stable center near \(-0.04\) goals, with isolated positive and negative spikes. There is no repeated seasonal pattern in the game index. Since this is sports performance, a stable seasonal cycle is not expected conceptually as opposed to something like temperature, for example. The variability looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity (you may be able to deduce minor fanning out). The series is not especially volatile. The statistical range is -5.1899 to 2.9214, so the total range is 8.1113 goals.
+\item
+  \(S_t\): This is Blackwood's game-by-game even-strength save percentage series, measured as a proportion on \([0,1]\). The mean behavior appears approximately stable around \(0.9023\), with no clear linear or nonlinear trend through the matched game index. There is no visible seasonal pattern. The series has a few sharp downward games, but these appear as isolated dips rather than a repeating cycle. The spread appears reasonably constant over time, so the variance looks approximately homoscedastic rather than heteroscedastic (again, you may be able to deduce minor fanning out). There is no strong visual evidence of volatility clustering, although you be able to deduce a few outliers. The statistical range is 0.5 to 1, so the total range is 0.5.
+\item
+  \(X_t\): This is Blackwood's team game-by-game even-strength xGF\% series, measured in percentage points. The plot fluctuates around \(48.59\) percent and does not show a sustained deterministic trend (if you break it into pieces, you can see a linear upward trend towards the latter); the franchise changes may create local level differences, but the overall pattern is still irregular rather than trending. There is no visual seasonality. The ups and downs appear irregular from game to game and do not repeat in a fixed cycle. The variance looks approximately constant over time, so I do not see strong heteroscedasticity or volatility clustering in this series. The statistical range is 21.03 to 80.66, so the total range is 59.63 percentage points.
+\item
+  Overall conclusion: From the time-series plots, the Blackwood series do not look non-stationary. The means appear approximately time-invariant, and the spreads are fairly stable.
+\end{itemize}
+
+\subsubsection{Shesterkin}\label{shesterkin}
+
+\begin{itemize}
+\tightlist
+\item
+  \(G_t\): This is Shesterkin's game-by-game even-strength GSAx series, measured in goals, over 285 matched career games from 2020-01-07 through 2025-11-04. The plot fluctuates around a stable positive center near \(0.2329\) goals and does not show a visible linear or nonlinear trend. There is no visible seasonal cycle. The spikes are irregular rather than repeating. The spread appears fairly stable over time, so the variance looks approximately homoscedastic (again, you may be able to deduce minor fanning out). There is no sustained volatility clustering. The statistical range is -4.288 to 2.857, so the total range is 7.1451 goals.
+\item
+  \(S_t\): This is Shesterkin's game-by-game even-strength save percentage series, measured as a proportion. The series fluctuates around \(0.9163\), with occasional large downward games, but it does not show a systematic linear or nonlinear trend. There is no clear repeated seasonal pattern. The spread appears approximately constant over time, so the series looks homoscedastic rather than heteroscedastic (again, you may be able to deduce minor fanning out). There is no strong visual evidence of volatility clustering, although there are some obvious outliers. The statistical range is 0.4444 to 1, so the total range is 0.5556.
+\item
+  \(X_t\): This is Shesterkin's team game-by-game even-strength xGF\% series, measured in percentage points. The plot oscillates around \(49.07\) percent, and the movement appears irregular rather than trending. There is no visible seasonal pattern. The spread looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity or volatility clustering. The statistical range is 21.68 to 79.42, so the total range is 57.74 percentage points.
+\item
+  Overall conclusion: From the plots, the Shesterkin series also appear stationary. The means look approximately stable, and the variances are fairly constant.
+\end{itemize}
+
+\newpage
+
+\subsection{Problem 3 (b)}\label{problem-3-b}
+
+\begin{problem}[Problem 3 (b)]
+Use the ADF test to check if each of your time series is stationary or not.
+\end{problem}
+
+For each series, I use the Augmented Dickey-Fuller test with
+\[
+H_0: \text{the series is non-stationary}, \qquad
+H_a: \text{the series is stationary},
+\]
+at significance level \(\alpha = 0.05\).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Run the ADF tests for the six raw game{-}by{-}game series.}
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  blackwood_gbgs$gsax_ev
+## Dickey-Fuller = -6.7931, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  blackwood_gbgs$sv_pct_ev
+## Dickey-Fuller = -6.0001, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(blackwood\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  blackwood_gbgs$team_xg_pct_ev
+## Dickey-Fuller = -4.1809, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{gsax\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  shesterkin_gbgs$gsax_ev
+## Dickey-Fuller = -6.7433, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{sv\_pct\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  shesterkin_gbgs$sv_pct_ev
+## Dickey-Fuller = -6.9665, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tseries}\SpecialCharTok{::}\FunctionTok{adf.test}\NormalTok{(shesterkin\_gbgs}\SpecialCharTok{$}\NormalTok{team\_xg\_pct\_ev)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  shesterkin_gbgs$team_xg_pct_ev
+## Dickey-Fuller = -6.8293, Lag order = 6, p-value = 0.01
+## alternative hypothesis: stationary
+\end{verbatim}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:adf-results-table}ADF Test Results}
+\centering
+\begin{tabular}[t]{cccccc}
+\toprule
+Goalie & Series & DF & Lag & P-value & Decision\\
+\midrule
+Blackwood & $G_t$ & -6.7931 & 6 & <0.01 & Reject $H_0$\\
+Blackwood & $S_t$ & -6.0001 & 6 & <0.01 & Reject $H_0$\\
+Blackwood & $X_t$ & -4.1809 & 6 & <0.01 & Reject $H_0$\\
+Shesterkin & $G_t$ & -6.7433 & 6 & <0.01 & Reject $H_0$\\
+Shesterkin & $S_t$ & -6.9665 & 6 & <0.01 & Reject $H_0$\\
+\addlinespace
+Shesterkin & $X_t$ & -6.8293 & 6 & <0.01 & Reject $H_0$\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+Using the reported test statistics and p-values:
+
+\begin{itemize}
+\tightlist
+\item
+  Blackwood \(G_t\): DF statistic \(=-6.7931\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(G_t\) is stationary.
+\item
+  Blackwood \(S_t\): DF statistic \(=-6.0001\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(S_t\) is stationary.
+\item
+  Blackwood \(X_t\): DF statistic \(=-4.1809\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(X_t\) is stationary.
+\item
+  Shesterkin \(G_t\): DF statistic \(=-6.7433\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(G_t\) is stationary.
+\item
+  Shesterkin \(S_t\): DF statistic \(=-6.9665\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(S_t\) is stationary.
+\item
+  Shesterkin \(X_t\): DF statistic \(=-6.8293\), lag order \(=6\), p-value \textless0.01. Since \(p < 0.05\), reject \(H_0\). Therefore, \(X_t\) is stationary.
+\end{itemize}
+
+\newpage
+
+\subsection{Problem 3 (c)}\label{problem-3-c}
+
+\begin{problem}[Problem 3 (c)]
+Is there a trend in your time series (for each variable)? Why? If yes, then model the trend present in all the variables and report the fitted trend models.
+\end{problem}
+
+From part (a), none of the six raw game-by-game series shows a clear deterministic trend, and from part (b), all six ADF tests reject non-stationarity. Therefore, I do not fit nonconstant deterministic trend models in this section. Instead, I treat each series as fluctuating around a constant mean:
+\[
+Y_t = \mu_Y + W_t.
+\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Estimated constant means for the six game{-}by{-}game series.}
+\FunctionTok{rbind}\NormalTok{(}
+  \AttributeTok{Blackwood =} \FunctionTok{round}\NormalTok{(blackwood\_project}\SpecialCharTok{$}\NormalTok{means, }\DecValTok{6}\NormalTok{),}
+  \AttributeTok{Shesterkin =} \FunctionTok{round}\NormalTok{(shesterkin\_project}\SpecialCharTok{$}\NormalTok{means, }\DecValTok{6}\NormalTok{)}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##              gsax_ev sv_pct_ev team_xg_pct_ev
+## Blackwood  -0.039974  0.902272       48.59140
+## Shesterkin  0.232914  0.916254       49.06553
+\end{verbatim}
+
+For Blackwood, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= -0.039974 + W_t,\\
+S_t &= 0.902272 + W_t,\\
+X_t &= 48.591400 + W_t.
+\end{aligned}
+\]
+
+For Shesterkin, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= 0.232914 + W_t,\\
+S_t &= 0.916254 + W_t,\\
+X_t &= 49.065530 + W_t.
+\end{aligned}
+\]
+
+So there is no nonconstant deterministic trend to remove. Also, there is no seasonal component to remove here. Since \(t\) is a game index rather than a monthly, quarterly, or weekly calendar time scale, there is no fixed seasonal frequency built into the series conceptually. This is also consistent with the original time-series plots in part (a), which do not show any repeated seasonal cycle. Therefore, in parts (d) and (e), the detrended and deseasonalized series are just the original series in their original units.
+
+\newpage
+
+\subsection{Problem 3 (d)}\label{problem-3-d}
+
+\begin{problem}[Problem 3 (d)]
+Using the detrended and deseasonalized variables, make CCF plot and scatterplots for your response and predictors (one at a time) and discuss the relationship.
+\end{problem}
+
+Since only past predictor values are usable for forecasting, I interpret only predictor leads in this section. In \(\texttt{ccf}(x,y)\), negative lags correspond to the predictor leading the response. So the CCF plots below display only those negative-lag correlations, rewritten as positive lead lengths in games.
+
+\subsubsection{Blackwood}\label{blackwood-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Lead{-}only CCF plots for Blackwood.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_goalie\_ccf}\NormalTok{(blackwood\_project, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-9-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Scatterplots of lagged save percentage against future GSAx for Blackwood.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_lagged\_scatter\_grid}\NormalTok{(blackwood\_project, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{, }\AttributeTok{predictor =} \StringTok{\textquotesingle{}sv\textquotesingle{}}\NormalTok{, }\AttributeTok{leads =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{9}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-10-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Scatterplots of lagged team xGF\% against future GSAx for Blackwood.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_lagged\_scatter\_grid}\NormalTok{(blackwood\_project, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{, }\AttributeTok{predictor =} \StringTok{\textquotesingle{}xgf\textquotesingle{}}\NormalTok{, }\AttributeTok{leads =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{9}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-11-1} \end{center}
+
+For predictive lead-lag structure, the usable lead-side CCF is weak for both predictors. Restricting attention to leads 1 through 9 games, the largest save-percentage lead correlation has magnitude only 0.1011 and occurs at lead 4, while the largest team-xGF\% lead correlation has magnitude only 0.0723 and occurs at lead 8. The 3 by 3 lead-by-lead scatterplot grids for each predictor are also fairly diffuse, with no strong or stable linear pattern across leads 1 through 9. Even though these relations are weak, in sports data, I can only really take what I'm given, so for part (e), I will carry forward lead 4 for save percentage and lead 8 for team xGF\%.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# ACF of the response series for possible autoregressive carryover.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_response\_acf}\NormalTok{(blackwood\_project, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-12-1} \end{center}
+
+At the end, I also check the ACF of the response because that is the only series for which a lagged autoregressive term might be added to the regression model. For Blackwood, the full ACF through lag 9 does not show any especially strong spike, so there is no strong autoregressive signal. Still, if I take the largest visible response-side candidate, it is around lag 4 with \(\rho(4) \approx -0.1088\), so I carry \(G_{t-4}\) into part (e) as the most plausible extra response lag.
+
+\subsubsection{Shesterkin}\label{shesterkin-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Lead{-}only CCF plots for Shesterkin.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_goalie\_ccf}\NormalTok{(shesterkin\_project, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-13-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Scatterplots of lagged save percentage against future GSAx for Shesterkin.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_lagged\_scatter\_grid}\NormalTok{(shesterkin\_project, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{, }\AttributeTok{predictor =} \StringTok{\textquotesingle{}sv\textquotesingle{}}\NormalTok{, }\AttributeTok{leads =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{9}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-14-1} \end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Scatterplots of lagged team xGF\% against future GSAx for Shesterkin.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_lagged\_scatter\_grid}\NormalTok{(shesterkin\_project, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{, }\AttributeTok{predictor =} \StringTok{\textquotesingle{}xgf\textquotesingle{}}\NormalTok{, }\AttributeTok{leads =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{9}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-15-1} \end{center}
+
+On the predictive lead side of the CCF, save percentage shows a modest relationship with future GSAx. Over leads 1 through 9 games, the largest save-percentage lead correlation is -0.1762 at lead 2, while team xGF\% remains weak, with largest absolute correlation only 0.076 at lead 4. The 3 by 3 save-percentage scatterplot grid shows that the negative pattern is most visible at the shorter leads, especially around the selected two-game lead, while the team-xGF\% grid remains diffuse throughout. Again, even though the lead relations are not large in magnitude, I will carry forward lead 2 for save percentage and lead 4 for team xGF\%.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# ACF of the response series for possible autoregressive carryover.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_response\_acf}\NormalTok{(shesterkin\_project, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-16-1} \end{center}
+
+At the end, I also check the ACF of the response because that is the only series for which a lagged autoregressive term might be added to the regression model. For Shesterkin, the full ACF is more informative than just lag 1: lag 1 is small \(\rho(1) \approx -0.0308\), but there is a noticeable negative spike at lag 2 with \(\rho(2) \approx -0.1684\). So \(G_{t-2}\) is at least a plausible additional candidate regressor for part (e).
+
+\newpage
+
+\subsection{Problem 3 (e)}\label{problem-3-e}
+
+\begin{problem}[Problem 3 (e)]
+Propose and fit a time series regression model for your detrended and deseasonalized response variable. Report the fitted model and discuss goodness of fit of this model.
+\end{problem}
+
+For the forecast-accuracy summaries reported below, I use the aligned train-test split at matched career game number \(t=216\). This is Blackwood's first Colorado game in the matched sample, so observations with \(t < 216\) form the training set and observations with \(t \ge 216\) form the test set for both goalies.
+
+\subsubsection{Blackwood Model}\label{blackwood-model}
+
+For Blackwood, I use the lag choices suggested by part (d), namely lead 4 for save percentage, lead 8 for team xGF\%, and the strongest response-side ACF candidate \(G_{t-4}\). The model is
+\[
+G_t = \beta_0 + \beta_1 S_{t-4} + \beta_2 X_{t-8} + \beta_3 G_{t-4} + W_t.
+\]
+The fitted equation is
+\[
+\widehat{G_t} = 0.839751 - 0.543763 S_{t-4} - 0.008309 X_{t-8} - 0.082838 G_{t-4}
+\]
+where \(G_t\) is Blackwood's game-by-game even-strength GSAx in goals, \(S_t\) is Blackwood's game-by-game even-strength save percentage as a proportion, and \(X_t\) is Blackwood's team game-by-game even-strength xGF\% in percentage points. Since the largest lag used here is 8, the aligned fitted sample has \(n=277\) games.
+
+\begin{itemize}
+\tightlist
+\item
+  \(\hat{\beta}_1=-0.5438\) means a 0.01 increase in \(S_{t-4}\) is associated with an average change of -0.0054 goals in current \(G_t\), holding \(X_{t-8}\) and \(G_{t-4}\) fixed.
+\item
+  \(\hat{\beta}_2=-0.0083\) means a one-percentage-point increase in \(X_{t-8}\) is associated with an average change of -0.0083 goals in current \(G_t\), holding the other regressors fixed.
+\item
+  \(\hat{\beta}_3=-0.0828\) means a one-goal increase in \(G_{t-4}\) is associated with an average change of -0.0828 goals in current \(G_t\), holding \(S_{t-4}\) and \(X_{t-8}\) fixed.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit the Blackwood lagged regression and inspect the summary.}
+\NormalTok{blackwood\_lag\_model}\SpecialCharTok{$}\NormalTok{fit}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## stats::lm(formula = fit_form, data = dat)
+## 
+## Coefficients:
+## (Intercept)           sv          xgf         gLag  
+##    0.839751    -0.543763    -0.008309    -0.082838
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(blackwood\_lag\_model}\SpecialCharTok{$}\NormalTok{fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## stats::lm(formula = fit_form, data = dat)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -5.1895 -1.0794  0.0652  0.9892  3.1494 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.839751   1.664419   0.505    0.614
+## sv          -0.543763   1.764601  -0.308    0.758
+## xgf         -0.008309   0.006709  -1.238    0.217
+## gLag        -0.082838   0.099809  -0.830    0.407
+## 
+## Residual standard error: 1.382 on 273 degrees of freedom
+## Multiple R-squared:  0.01744,    Adjusted R-squared:  0.006648 
+## F-statistic: 1.616 on 3 and 273 DF,  p-value: 0.186
+\end{verbatim}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:blackwood-lag-reg-coef}Blackwood Lagged Regression Coefficients}
+\centering
+\begin{tabular}[t]{ccccc}
+\toprule
+Term & Estimate & Std. Error & t Value & P-value\\
+\midrule
+Intercept & 0.839751 & 1.664419 & 0.504531 & 0.6143\\
+$S_{t-4}$ & -0.543763 & 1.764601 & -0.308150 & 0.7582\\
+$X_{t-8}$ & -0.008309 & 0.006709 & -1.238496 & 0.2166\\
+$G_{t-4}$ & -0.082838 & 0.099809 & -0.829973 & 0.4073\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:blackwood-lag-reg-fit}Blackwood Lagged Regression Fit Criteria}
+\centering
+\begin{tabular}[t]{cccccc}
+\toprule
+\# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+4 & 0.0066 & 0.1860 & 3.5064 & 1.6693 & 3.5718\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:blackwood-lag-reg-fc}Blackwood Lagged Regression Forecast Accuracy}
+\centering
+\begin{tabular}[t]{ccccc}
+\toprule
+ME & MPE & MSE & MAE & MAPE\\
+\midrule
+0.5223 & 126.4016 & 1.7263 & 1.0844 & 189.8653\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Diagnostic plots for the Blackwood lagged regression.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_model\_diagnostics}\NormalTok{(blackwood\_lag\_model, }\StringTok{\textquotesingle{}Blackwood\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-18-1} \end{center}
+
+For Blackwood, the final model still fits weakly even after using the strongest available lagged terms from part (d). The adjusted \(R^2\) is only 0.0066, the overall F-test p-value is 0.1860, and the residual standard error is 1.3819 goals. None of the three lagged regressors is statistically significant at the 5\% level, and the diagnostic plots do not suggest a strong systematic relation. Overall, Blackwood's final lagged regression is not a particularly strong model, even after taking the most favorable lead and response-lag choices from part (d).
+
+\subsubsection{Shesterkin Model}\label{shesterkin-model}
+
+For Shesterkin, I again use the lag choices suggested by part (d), namely lead 2 for save percentage, lead 4 for team xGF\%, and the response-side ACF candidate \(G_{t-2}\). The model is
+\[
+G_t = \beta_0 + \beta_1 S_{t-2} + \beta_2 X_{t-4} + \beta_3 G_{t-2} + W_t.
+\]
+The fitted equation is
+\[
+\widehat{G_t} = 1.968206 - 2.333501 S_{t-2} + 0.008648 X_{t-4} - 0.054451 G_{t-2}
+\]
+where \(G_t\) is Shesterkin's game-by-game even-strength GSAx in goals, \(S_t\) is Shesterkin's game-by-game even-strength save percentage as a proportion, and \(X_t\) is Shesterkin's team game-by-game even-strength xGF\% in percentage points. Since the largest lag used here is 4, the aligned fitted sample has \(n=281\) games.
+
+\begin{itemize}
+\tightlist
+\item
+  \(\hat{\beta}_1=-2.3335\) means a 0.01 increase in \(S_{t-2}\) is associated with an average change of -0.0233 goals in current \(G_t\), holding \(X_{t-4}\) and \(G_{t-2}\) fixed.
+\item
+  \(\hat{\beta}_2=0.0086\) means a one-percentage-point increase in \(X_{t-4}\) is associated with an average change of 0.0086 goals in current \(G_t\), holding the other regressors fixed.
+\item
+  \(\hat{\beta}_3=-0.0545\) means a one-goal increase in \(G_{t-2}\) is associated with an average change of -0.0545 goals in current \(G_t\), holding \(S_{t-2}\) and \(X_{t-4}\) fixed.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit the Shesterkin lagged regression and inspect the summary.}
+\NormalTok{shesterkin\_lag\_model}\SpecialCharTok{$}\NormalTok{fit}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## stats::lm(formula = fit_form, data = dat)
+## 
+## Coefficients:
+## (Intercept)           sv          xgf         gLag  
+##    1.968206    -2.333501     0.008648    -0.054451
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(shesterkin\_lag\_model}\SpecialCharTok{$}\NormalTok{fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## stats::lm(formula = fit_form, data = dat)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -4.2455 -0.9468  0.1657  0.9079  2.7080 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  1.968206   1.902056   1.035    0.302
+## sv          -2.333501   2.098823  -1.112    0.267
+## xgf          0.008648   0.007220   1.198    0.232
+## gLag        -0.054451   0.115525  -0.471    0.638
+## 
+## Residual standard error: 1.336 on 277 degrees of freedom
+## Multiple R-squared:  0.03727,    Adjusted R-squared:  0.02684 
+## F-statistic: 3.575 on 3 and 277 DF,  p-value: 0.01449
+\end{verbatim}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:shesterkin-lag-reg-coef}Shesterkin Lagged Regression Coefficients}
+\centering
+\begin{tabular}[t]{ccccc}
+\toprule
+Term & Estimate & Std. Error & t Value & P-value\\
+\midrule
+Intercept & 1.968206 & 1.902056 & 1.034778 & 0.3017\\
+$S_{t-2}$ & -2.333501 & 2.098823 & -1.111814 & 0.2672\\
+$X_{t-4}$ & 0.008648 & 0.007220 & 1.197847 & 0.2320\\
+$G_{t-2}$ & -0.054451 & 0.115525 & -0.471336 & 0.6378\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:shesterkin-lag-reg-fit}Shesterkin Lagged Regression Fit Criteria}
+\centering
+\begin{tabular}[t]{cccccc}
+\toprule
+\# Parameters & $R_a^2$ & $p_F$ & AIC & AICc & BIC\\
+\midrule
+4 & 0.0268 & 0.0145 & 3.4388 & 1.6017 & 3.5036\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{center}
+\scriptsize
+\begin{table}[H]
+
+\caption{\label{tab:shesterkin-lag-reg-fc}Shesterkin Lagged Regression Forecast Accuracy}
+\centering
+\begin{tabular}[t]{ccccc}
+\toprule
+ME & MPE & MSE & MAE & MAPE\\
+\midrule
+-0.1073 & 81.9792 & 2.2879 & 1.1701 & 118.4206\\
+\bottomrule
+\end{tabular}
+\end{table}
+\normalsize
+\end{center}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Diagnostic plots for the Shesterkin lagged regression.}
+\FunctionTok{with\_family}\NormalTok{(\{}
+  \FunctionTok{plot\_model\_diagnostics}\NormalTok{(shesterkin\_lag\_model, }\StringTok{\textquotesingle{}Shesterkin\textquotesingle{}}\NormalTok{)}
+\NormalTok{\})}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\includegraphics[width=\linewidth]{Homework5_files/figure-latex/unnamed-chunk-20-1} \end{center}
+
+For Shesterkin, the final lagged model performs better than Blackwood's, although it is still only modest in strength. The lagged save-percentage coefficient remains the main significant term, while the lagged team-xGF\% term and the added \(G_{t-2}\) term are not statistically significant in the full regression. The adjusted \(R^2\) is 0.0268, the overall F-test p-value is 0.0145, and the residual standard error is 1.3362 goals. Overall, this is a modest but defensible model for Shesterkin.
 
 \end{document}
