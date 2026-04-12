@@ -197,7 +197,7 @@ acf_stem_plot <- function(lags, acf_values, main_text) {
 
 # Disclosure
 
-GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting and formatting code blocks.
+GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text/equations nicely. Page formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting and formatting code blocks. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework5.Rmd) for more details.
 
 \newpage
 
