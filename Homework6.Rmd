@@ -1,0 +1,1135 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Homework 6
+author: |
+  Rento Saijo
+date: 'April 21, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\Cov}{\mathrm{Cov}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+font_path <- '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf'
+if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) {
+  sysfonts::font_add(
+    family = 'cmuserif',
+    regular = '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf',
+    bold = '/Users/rsai_91/Library/Fonts/cmu.serif-bold.ttf',
+    italic = '/Users/rsai_91/Library/Fonts/cmu.serif-italic.ttf',
+    bolditalic = '/Users/rsai_91/Library/Fonts/cmu.serif-bolditalic.ttf'
+  )
+  showtext::showtext_opts(dpi = 500)
+  showtext::showtext_auto(enable = TRUE)
+  knitr::opts_chunk$set(dev = 'CairoPDF')
+  graphics::par(family = 'cmuserif')
+}
+
+plot_family <- if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) 'cmuserif' else graphics::par('family')
+
+with_family <- function(expr, family = plot_family) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(family = family)
+  force(expr)
+}
+
+table_latex <- function(x, digits = 4, caption = NULL, size = '\\normalsize', col_names = NULL) {
+  y <- x
+  num_cols <- sapply(y, is.numeric)
+  y[num_cols] <- lapply(y[num_cols], round, digits = digits)
+  tab <- knitr::kable(
+    y,
+    format = 'latex',
+    booktabs = TRUE,
+    caption = caption,
+    col.names = col_names,
+    align = rep('c', ncol(y)),
+    row.names = FALSE,
+    escape = FALSE,
+    position = 'H'
+  )
+  knitr::asis_output(
+    paste0("\\begin{center}\n", size, "\n", tab, "\n\\normalsize\n\\end{center}")
+  )
+}
+
+format_p <- function(p, digits = 4) {
+  if (is.na(p)) {
+    return(NA_character_)
+  }
+  if (p < 10^(-digits)) {
+    return(paste0('<', format(10^(-digits), scientific = FALSE, trim = TRUE)))
+  }
+  format(round(p, digits), nsmall = digits)
+}
+
+split_variance_table <- function(z, label) {
+  n <- length(z)
+  h <- floor(n / 2)
+  data.frame(
+    Series = label,
+    First_Half = stats::var(z[1:h]),
+    Second_Half = stats::var(z[(h + 1):n]),
+    Ratio_Second_to_First = stats::var(z[(h + 1):n]) / stats::var(z[1:h]),
+    stringsAsFactors = FALSE
+  )
+}
+
+acf_values <- function(z, lag.max = 10) {
+  out <- stats::acf(z, plot = FALSE, lag.max = lag.max)
+  data.frame(
+    Lag = 0:lag.max,
+    ACF = as.numeric(out$acf)[1:(lag.max + 1)]
+  )
+}
+
+suppressPackageStartupMessages({
+  library(astsa)
+  library(forecast)
+})
+
+varve_x <- astsa::varve
+varve_y <- log(varve_x)
+varve_u <- diff(varve_y)
+varve_var_table <- rbind(
+  split_variance_table(varve_x, '$X_t$'),
+  split_variance_table(varve_y, '$Y_t=\\log(X_t)$')
+)
+varve_acf_x <- acf_values(varve_x, lag.max = 10)
+varve_acf_y <- acf_values(varve_y, lag.max = 10)
+varve_acf_u <- acf_values(varve_u, lag.max = 10)
+
+air_x <- AirPassengers
+air_t <- stats::time(air_x)
+air_log <- log(air_x)
+air_lambda <- forecast::BoxCox.lambda(air_x)
+air_boxcox <- forecast::BoxCox(air_x, lambda = air_lambda)
+air_var_table <- rbind(
+  split_variance_table(as.numeric(air_x), 'Original'),
+  split_variance_table(as.numeric(air_log), 'Log'),
+  split_variance_table(as.numeric(air_boxcox), paste0('Box-Cox ($\\lambda=', round(air_lambda, 4), '$)'))
+)
+
+dax_ts <- EuStockMarkets[, 'DAX']
+dax <- as.numeric(dax_ts)
+dax_log_return <- diff(log(dax))
+dax_acf <- acf_values(dax, lag.max = 10)
+dax_return_acf <- acf_values(dax_log_return, lag.max = 10)
+
+blackwood_gbgs <- utils::read.csv('data/blackwood_gbgs.csv', stringsAsFactors = FALSE)
+shesterkin_gbgs <- utils::read.csv('data/shesterkin_gbgs.csv', stringsAsFactors = FALSE)
+matched_n <- min(nrow(blackwood_gbgs), nrow(shesterkin_gbgs))
+blackwood_gbgs <- blackwood_gbgs[1:matched_n, ]
+shesterkin_gbgs <- shesterkin_gbgs[1:matched_n, ]
+blackwood_gbgs$t <- seq_len(nrow(blackwood_gbgs))
+shesterkin_gbgs$t <- seq_len(nrow(shesterkin_gbgs))
+
+build_lagged_regression_hw5 <- function(df, sv_lead, x_lead, g_lead) {
+  n <- nrow(df)
+  L <- max(c(sv_lead, x_lead, g_lead))
+  dat <- data.frame(
+    t = df$t[(L + 1):n],
+    g = df$gsax_ev[(L + 1):n],
+    sv = df$sv_pct_ev[(L + 1 - sv_lead):(n - sv_lead)],
+    xgf = df$team_xg_pct_ev[(L + 1 - x_lead):(n - x_lead)],
+    gLag = df$gsax_ev[(L + 1 - g_lead):(n - g_lead)]
+  )
+  fit <- stats::lm(g ~ sv + xgf + gLag, data = dat)
+  list(data = dat, fit = fit)
+}
+
+blackwood_hw5 <- build_lagged_regression_hw5(blackwood_gbgs, sv_lead = 4, x_lead = 8, g_lead = 4)
+shesterkin_hw5 <- build_lagged_regression_hw5(shesterkin_gbgs, sv_lead = 2, x_lead = 4, g_lead = 2)
+
+blackwood_project_table <- rbind(
+  split_variance_table(stats::residuals(blackwood_hw5$fit), '$\\widehat{\\varepsilon}^{(B)}_t$'),
+  split_variance_table(blackwood_hw5$data$sv, '$S_{t-4}$'),
+  split_variance_table(blackwood_hw5$data$xgf, '$X_{t-8}$'),
+  split_variance_table(blackwood_hw5$data$gLag, '$G_{t-4}$')
+)
+blackwood_project_table$Mean <- c(
+  mean(stats::residuals(blackwood_hw5$fit)),
+  mean(blackwood_hw5$data$sv),
+  mean(blackwood_hw5$data$xgf),
+  mean(blackwood_hw5$data$gLag)
+)
+blackwood_project_table$Min <- c(
+  min(stats::residuals(blackwood_hw5$fit)),
+  min(blackwood_hw5$data$sv),
+  min(blackwood_hw5$data$xgf),
+  min(blackwood_hw5$data$gLag)
+)
+blackwood_project_table$Max <- c(
+  max(stats::residuals(blackwood_hw5$fit)),
+  max(blackwood_hw5$data$sv),
+  max(blackwood_hw5$data$xgf),
+  max(blackwood_hw5$data$gLag)
+)
+blackwood_project_table <- blackwood_project_table[, c('Series', 'Mean', 'Min', 'Max', 'First_Half', 'Second_Half', 'Ratio_Second_to_First')]
+
+shesterkin_project_table <- rbind(
+  split_variance_table(stats::residuals(shesterkin_hw5$fit), '$\\widehat{\\varepsilon}^{(S)}_t$'),
+  split_variance_table(shesterkin_hw5$data$sv, '$S_{t-2}$'),
+  split_variance_table(shesterkin_hw5$data$xgf, '$X_{t-4}$'),
+  split_variance_table(shesterkin_hw5$data$gLag, '$G_{t-2}$')
+)
+shesterkin_project_table$Mean <- c(
+  mean(stats::residuals(shesterkin_hw5$fit)),
+  mean(shesterkin_hw5$data$sv),
+  mean(shesterkin_hw5$data$xgf),
+  mean(shesterkin_hw5$data$gLag)
+)
+shesterkin_project_table$Min <- c(
+  min(stats::residuals(shesterkin_hw5$fit)),
+  min(shesterkin_hw5$data$sv),
+  min(shesterkin_hw5$data$xgf),
+  min(shesterkin_hw5$data$gLag)
+)
+shesterkin_project_table$Max <- c(
+  max(stats::residuals(shesterkin_hw5$fit)),
+  max(shesterkin_hw5$data$sv),
+  max(shesterkin_hw5$data$xgf),
+  max(shesterkin_hw5$data$gLag)
+)
+shesterkin_project_table <- shesterkin_project_table[, c('Series', 'Mean', 'Min', 'Max', 'First_Half', 'Second_Half', 'Ratio_Second_to_First')]
+
+blackwood_mean_fit <- stats::lm(stats::residuals(blackwood_hw5$fit) ~ 1)
+shesterkin_mean_fit <- stats::lm(stats::residuals(shesterkin_hw5$fit) ~ 1)
+
+transform_review_positive <- function(z, label) {
+  n <- length(z)
+  h <- floor(n / 2)
+  lambda <- forecast::BoxCox.lambda(z)
+  z_log <- log(z)
+  z_bc <- forecast::BoxCox(z, lambda = lambda)
+  data.frame(
+    Series = label,
+    Lambda = lambda,
+    Raw_Ratio = stats::var(z[(h + 1):n]) / stats::var(z[1:h]),
+    Log_Ratio = stats::var(z_log[(h + 1):n]) / stats::var(z_log[1:h]),
+    BoxCox_Ratio = stats::var(z_bc[(h + 1):n]) / stats::var(z_bc[1:h]),
+    stringsAsFactors = FALSE
+  )
+}
+
+blackwood_transform_review <- rbind(
+  data.frame(
+    Series = '$\\widehat{\\varepsilon}^{(B)}_t$',
+    Lambda = NA_real_,
+    Raw_Ratio = blackwood_project_table$Ratio_Second_to_First[1],
+    Log_Ratio = NA_real_,
+    BoxCox_Ratio = NA_real_,
+    stringsAsFactors = FALSE
+  ),
+  transform_review_positive(blackwood_hw5$data$sv, '$S_{t-4}$'),
+  transform_review_positive(blackwood_hw5$data$xgf, '$X_{t-8}$'),
+  data.frame(
+    Series = '$G_{t-4}$',
+    Lambda = NA_real_,
+    Raw_Ratio = blackwood_project_table$Ratio_Second_to_First[4],
+    Log_Ratio = NA_real_,
+    BoxCox_Ratio = NA_real_,
+    stringsAsFactors = FALSE
+  )
+)
+
+shesterkin_transform_review <- rbind(
+  data.frame(
+    Series = '$\\widehat{\\varepsilon}^{(S)}_t$',
+    Lambda = NA_real_,
+    Raw_Ratio = shesterkin_project_table$Ratio_Second_to_First[1],
+    Log_Ratio = NA_real_,
+    BoxCox_Ratio = NA_real_,
+    stringsAsFactors = FALSE
+  ),
+  transform_review_positive(shesterkin_hw5$data$sv, '$S_{t-2}$'),
+  transform_review_positive(shesterkin_hw5$data$xgf, '$X_{t-4}$'),
+  data.frame(
+    Series = '$G_{t-2}$',
+    Lambda = NA_real_,
+    Raw_Ratio = shesterkin_project_table$Ratio_Second_to_First[4],
+    Log_Ratio = NA_real_,
+    BoxCox_Ratio = NA_real_,
+    stringsAsFactors = FALSE
+  )
+)
+
+# Build the selected additional Shesterkin Box-Cox transforms and final centered series.
+shk_res_shift <- abs(min(stats::residuals(shesterkin_hw5$fit))) + 1
+shk_res_lambda <- forecast::BoxCox.lambda(stats::residuals(shesterkin_hw5$fit) + shk_res_shift)
+shk_res_bc <- forecast::BoxCox(stats::residuals(shesterkin_hw5$fit) + shk_res_shift, lambda = shk_res_lambda)
+
+shk_glag_shift <- abs(min(shesterkin_hw5$data$gLag)) + 1
+shk_glag_lambda <- forecast::BoxCox.lambda(shesterkin_hw5$data$gLag + shk_glag_shift)
+shk_glag_bc <- forecast::BoxCox(shesterkin_hw5$data$gLag + shk_glag_shift, lambda = shk_glag_lambda)
+
+blackwood_final_centered <- stats::residuals(blackwood_mean_fit)
+shesterkin_final_centered <- shk_res_bc - mean(shk_res_bc)
+blackwood_final_acf <- stats::acf(blackwood_final_centered, plot = FALSE, lag.max = 5)
+shesterkin_final_acf <- stats::acf(shesterkin_final_centered, plot = FALSE, lag.max = 5)
+shk_res_bc_mean <- mean(shk_res_bc)
+shk_glag_bc_mean <- mean(shk_glag_bc)
+```
+
+# Disclosure
+
+GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text and equations. Page-formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting and table-formatting steps. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework6.Rmd) for more details.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem 1]
+The glacial varve record (\texttt{varve} in \texttt{astsa}) exhibits some non-stationarity that can be improved by transforming to logarithms and some additional non-stationarity that can be corrected by differencing the logarithms.
+\end{problem}
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+Argue that the glacial varves series, say \(X_t\), exhibits heteroscedasticity by computing the sample variance over the first half and the second half of the data. Argue that the transformation \(Y_t=\log X_t\) stabilizes the variance over the series. Plot the histograms of \(X_t\) and \(Y_t\) to see whether the approximation to normality is improved by transforming the data (use histogram and QQ plots).
+\end{problem}
+
+```{r p1a-variance-code, results='hide'}
+# Compute the first-half and second-half sample variances.
+n_varve <- length(varve_x)
+half_varve <- floor(n_varve / 2)
+data.frame(
+  Series = c('X_t', 'Y_t = log(X_t)'),
+  First_Half = c(var(varve_x[1:half_varve]), var(varve_y[1:half_varve])),
+  Second_Half = c(var(varve_x[(half_varve + 1):n_varve]), var(varve_y[(half_varve + 1):n_varve]))
+)
+```
+
+```{r p1a-variance-table, echo=FALSE, results='asis'}
+table_latex(
+  varve_var_table,
+  digits = 4,
+  caption = 'First-half and second-half sample variances for the glacial varve series',
+  col_names = c('Series', 'First Half Variance', 'Second Half Variance', 'Second/First Ratio')
+)
+```
+
+```{r p1a-timeplots, fig.width=8.5, fig.height=6.5, out.width='\\linewidth'}
+with_family({
+  # Plot the original and logged series to compare spread over time.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.1, cex.lab = 1, cex.axis = 0.95)
+  astsa::tsplot(
+    ts(varve_x, start = 1, frequency = 1),
+    main = 'Glacial Varves: Original Series',
+    xlab = 'Observation Index (t)',
+    ylab = 'Original Varves',
+    col = 'navy',
+    lwd = 2
+  )
+  astsa::tsplot(
+    ts(varve_y, start = 1, frequency = 1),
+    main = 'Glacial Varves: Log-Transformed Series',
+    xlab = 'Observation Index (t)',
+    ylab = 'Logged Varves',
+    col = 'firebrick',
+    lwd = 2
+  )
+})
+```
+
+```{r p1a-hist-qq, fig.width=8.5, fig.height=8, out.width='\\linewidth'}
+with_family({
+  # Compare marginal shape and normality before and after logging.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 2), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.05, cex.lab = 0.95, cex.axis = 0.9)
+  hist(varve_x, main = 'Histogram of Original Varves', xlab = 'Original Varves', col = 'gray85', border = 'gray40')
+  qqnorm(varve_x, main = 'QQ Plot of Original Varves', pch = 16, cex = 0.6, col = 'navy')
+  qqline(varve_x, col = 'firebrick', lwd = 2)
+  hist(varve_y, main = 'Histogram of Logged Varves', xlab = 'Logged Varves', col = 'gray85', border = 'gray40')
+  qqnorm(varve_y, main = 'QQ Plot of Logged Varves', pch = 16, cex = 0.6, col = 'navy')
+  qqline(varve_y, col = 'firebrick', lwd = 2)
+})
+```
+
+The first-half and second-half sample variances for the original series are
+\[
+s^2_{X,\text{first}} = `r round(varve_var_table$First_Half[1], 4)`
+\quad \text{and} \quad
+s^2_{X,\text{second}} = `r round(varve_var_table$Second_Half[1], 4)`.
+\]
+The second-half variance is about `r round(varve_var_table$Ratio_Second_to_First[1], 4)` times the first-half variance, so the spread clearly increases over time. That is evidence of heteroscedasticity in \(X_t\). After the logarithmic transformation \(Y_t = \log(X_t)\), the first-half and second-half sample variances become
+\[
+s^2_{Y,\text{first}} = `r round(varve_var_table$First_Half[2], 4)`
+\quad \text{and} \quad
+s^2_{Y,\text{second}} = `r round(varve_var_table$Second_Half[2], 4)`.
+\]
+Now the second-half variance is only about `r round(varve_var_table$Ratio_Second_to_First[2], 4)` times the first-half variance, which is much closer to \(1\). So the log transformation stabilizes the variance substantially, even though it does not make the two halves exactly equal. From the plots:
+
+- The time plot of \(X_t\) shows visibly wider fluctuations in the later portion of the record than in the earlier portion, whereas the time plot of \(Y_t\) compresses the larger values and reduces that widening.
+- The histogram of \(X_t\) is strongly right-skewed, and the QQ plot of \(X_t\) shows substantial deviation from a straight line, especially in the upper tail.
+- The histogram of \(Y_t\) is more symmetric than that of \(X_t\), and the QQ plot of \(Y_t\) is closer to linear, although there are still some tail departures.
+
+Therefore, the log transformation improves both variance stability and the approximation to normality.
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+Make ACF of \(X_t\) and \(Y_t\) to compare them. Comment.
+\end{problem}
+
+```{r p1b-acf-code, results='hide'}
+# Compute the ACFs for the original and logged series.
+acf(varve_x, plot = FALSE, lag.max = 40)
+acf(varve_y, plot = FALSE, lag.max = 40)
+```
+
+```{r p1b-acf-plot, fig.width=8.5, fig.height=6.5, out.width='\\linewidth'}
+with_family({
+  # Plot the ACFs to compare persistence before and after logging.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.1, cex.lab = 1, cex.axis = 0.95)
+  acf(varve_x, lag.max = 40, main = 'ACF of Original Varves', col = 'navy', lwd = 2)
+  acf(varve_y, lag.max = 40, main = 'ACF of Logged Varves', col = 'firebrick', lwd = 2)
+})
+```
+
+The ACFs of \(X_t\) and \(Y_t\) are very similar in their overall shape. In both plots, many positive autocorrelations remain large across a long sequence of lags and decay only slowly instead of dropping off quickly toward \(0\). So the log transformation helps stabilize the variance, but it does not remove the strong serial dependence or the remaining non-stationarity in the mean behavior. The logged series is still too persistent to be treated as stationary.
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+Compute the difference of \(Y_t\) as \(U_t=Y_t-Y_{t-1}\), examine its time plot and sample ACF, and argue that differencing the logged varve data produces a reasonably stationary series.
+\end{problem}
+
+```{r p1c-code, results='hide'}
+# First-difference the logged varve series and inspect the first values.
+varve_u <- diff(varve_y)
+head(data.frame(
+  t = 2:length(varve_y),
+  U_t = varve_u
+))
+acf(varve_u, plot = FALSE, lag.max = 40)
+```
+
+```{r p1c-plot, fig.width=8.5, fig.height=6.5, out.width='\\linewidth'}
+with_family({
+  # Plot the differenced logged series and its sample ACF.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.1, cex.lab = 1, cex.axis = 0.95)
+  astsa::tsplot(
+    ts(varve_u, start = 2, frequency = 1),
+    main = 'Differenced Logged Varves',
+    xlab = 'Observation Index (t)',
+    ylab = 'U_t',
+    col = 'darkgreen',
+    lwd = 2
+  )
+  acf(varve_u, lag.max = 40, main = 'Sample ACF of Differenced Logged Varves', col = 'darkgreen', lwd = 2)
+})
+```
+
+After first differencing the logged series,
+\[
+U_t = Y_t - Y_{t-1} = (1-B)Y_t.
+\]
+The differenced logged series fluctuates around a stable center near
+\[
+\bar U = `r round(mean(varve_u), 4)`,
+\]
+and its spread looks much more stable than that of \(X_t\) or \(Y_t\). Its sample ACF also changes substantially. The main feature is that the very slow decay seen in \(X_t\) and \(Y_t\) is gone. After lag \(0\), there is one noticeable negative spike at lag \(1\), while the remaining autocorrelations are comparatively small and do not show a long persistent tail. Therefore, differencing the logged varve data removes the main low-frequency non-stationarity and produces a series that is reasonably stationary: its mean looks approximately constant over time, its variance is much more stable, and its sample ACF no longer shows the prolonged dependence seen in \(X_t\) and \(Y_t\).
+
+\newpage
+
+# Problem 2
+
+\begin{problem}[Problem 2]
+Suppose that a time series \(X_t\) is transformed to another series \(Y_t\) as follows:
+\[
+Y_t = (1-B^{12})\log(X_t).
+\]
+Explain the mathematical steps in this transformation (see Lecture-12). Suggest a situation where this transformation would be useful.
+\end{problem}
+
+Let
+\[
+Z_t = \log(X_t).
+\]
+Then the given transformation becomes
+\[
+Y_t = (1-B^{12})Z_t.
+\]
+
+Since the backshift operator satisfies
+\[
+BZ_t = Z_{t-1},
+\]
+applying it \(12\) times gives
+\[
+B^{12}Z_t = Z_{t-12}.
+\]
+Therefore,
+\[
+\begin{aligned}
+Y_t
+&= (1-B^{12})Z_t \\
+&= Z_t - B^{12}Z_t \\
+&= Z_t - Z_{t-12} \\
+&= \log(X_t) - \log(X_{t-12}) \\
+&= \log\left(\frac{X_t}{X_{t-12}}\right).
+\end{aligned}
+\]
+
+So this transformation has two steps:
+
+1. First, take logarithms:
+\[
+Z_t = \log(X_t).
+\]
+This is used for a positive-valued series when the spread tends to increase with the level.
+
+2. Second, take a lag-12 difference:
+\[
+Y_t = Z_t - Z_{t-12}.
+\]
+This removes annual seasonality for monthly data, since lag \(12\) compares each month with the same month one year earlier. Hence, \(Y_t\) is the seasonal log-difference of \(X_t\), or equivalently the logarithm of the year-over-year ratio \(X_t / X_{t-12}\). This transformation is useful for a positive monthly time series that has both:
+
+- heteroscedasticity, so a logarithm is appropriate, and
+- seasonal behavior with period \(12\), so a seasonal difference is appropriate.
+
+A standard example is monthly airline-passenger or monthly electricity-demand data, where the level and variance both increase over time and the same months tend to behave similarly from year to year.
+
+\newpage
+
+# Problem 3
+
+\begin{problem}[Problem 3]
+For the \texttt{AirPassengers} data used for log transformation in Lecture 12, try the Box-Cox transformation to answer the following:
+\end{problem}
+
+\newpage
+
+## Problem 3 (a)
+
+\begin{problem}[Problem 3 (a)]
+What value of \(\lambda\) is selected?
+\end{problem}
+
+```{r p3a-code}
+# Compute the Box-Cox lambda selected by the data.
+air_lambda
+```
+
+Using `BoxCox.lambda(AirPassengers)`, the selected value is
+\[
+\hat{\lambda} = `r round(air_lambda, 4)`.
+\]
+
+\newpage
+
+## Problem 3 (b)
+
+\begin{problem}[Problem 3 (b)]
+How does the transformed series compare to the log transformation?
+\end{problem}
+
+```{r p3b-code, results='hide'}
+# Compare first-half and second-half variances across three scales.
+air_lambda <- forecast::BoxCox.lambda(AirPassengers)
+air_boxcox <- forecast::BoxCox(AirPassengers, lambda = air_lambda)
+data.frame(
+  Scale = c('Original', 'Log', 'Box-Cox'),
+  First_Half = c(
+    var(as.numeric(air_x)[1:72]),
+    var(as.numeric(air_log)[1:72]),
+    var(as.numeric(air_boxcox)[1:72])
+  ),
+  Second_Half = c(
+    var(as.numeric(air_x)[73:144]),
+    var(as.numeric(air_log)[73:144]),
+    var(as.numeric(air_boxcox)[73:144])
+  )
+)
+```
+
+```{r p3b-plot, fig.width=8.5, fig.height=8, out.width='\\linewidth'}
+with_family({
+  # Plot the original, log-transformed, and Box-Cox-transformed series.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(3, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.05, cex.lab = 0.95, cex.axis = 0.9)
+  astsa::tsplot(air_x, main = 'AirPassengers: Original Series', xlab = 'Time (Months)', ylab = 'Passengers', col = 'navy', lwd = 2)
+  astsa::tsplot(air_log, main = 'AirPassengers: Log Transformation', xlab = 'Time (Months)', ylab = 'log(Passengers)', col = 'firebrick', lwd = 2)
+  astsa::tsplot(air_boxcox, main = paste0('AirPassengers: Box-Cox Transformation (lambda = ', round(air_lambda, 4), ')'), xlab = 'Time (Months)', ylab = 'Box-Cox Scale', col = 'darkgreen', lwd = 2)
+})
+```
+
+```{r p3b-var-table, echo=FALSE, results='asis'}
+table_latex(
+  air_var_table,
+  digits = 4,
+  caption = 'First-half and second-half sample variances for the AirPassengers series under different scales',
+  size = '\\small',
+  col_names = c('Scale', 'First Half Variance', 'Second Half Variance', 'Second/First Ratio')
+)
+```
+
+Because \(\hat{\lambda} = `r round(air_lambda, 4)`\) is reasonably close to \(0\), the Box-Cox transformed series is broadly similar to the log-transformed series. Both transformations compress the larger passenger counts in the later years and reduce the visible fanning-out that appears in the original series. However, since \(\hat{\lambda}<0\), the Box-Cox transformation compresses the larger observations slightly more strongly than the log transformation. So, relative to \(\log(X_t)\), the Box-Cox series has a somewhat flatter upper end in the later part of the record.
+
+\newpage
+
+## Problem 3 (c)
+
+\begin{problem}[Problem 3 (c)]
+Does variance appear stabilized?
+\end{problem}
+
+Yes, the variance appears stabilized after the Box-Cox transformation. In the original series, the second-half variance is
+\[
+`r round(air_var_table$Ratio_Second_to_First[1], 4)`
+\]
+times the first-half variance, which shows substantial increase in spread over time. After the log transformation, that ratio becomes
+\[
+`r round(air_var_table$Ratio_Second_to_First[2], 4)`,
+\]
+and after the Box-Cox transformation it becomes
+\[
+`r round(air_var_table$Ratio_Second_to_First[3], 4)`.
+\]
+
+So both log and Box-Cox stabilize the variance substantially relative to the original scale. Visually, the Box-Cox series does look variance-stabilized, although in this case the log transformation already does most of that work and the Box-Cox result is not dramatically different from it.
+
+\newpage
+
+# Problem 4
+
+\begin{problem}[Problem 4]
+Consider the \texttt{EuStockMarkets} data in \R. For this problem, I use the DAX series.
+\end{problem}
+
+\newpage
+
+## Problem 4 (a)
+
+\begin{problem}[Problem 4 (a)]
+Plot the time series for DAX. Is it stationary?
+\end{problem}
+
+```{r p4a-code, results='hide'}
+# Display the first few DAX observations.
+head(data.frame(
+  t = seq_along(dax),
+  DAX = dax
+))
+```
+
+```{r p4a-plot, fig.width=8.5, fig.height=4.5, out.width='\\linewidth'}
+with_family({
+  # Plot the DAX level series.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(1, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.1, cex.lab = 1, cex.axis = 0.95)
+  astsa::tsplot(
+    dax_ts,
+    main = 'DAX Index',
+    xlab = 'Time',
+    ylab = 'DAX Index Points',
+    col = 'navy',
+    lwd = 2
+  )
+})
+```
+
+The data are daily DAX index levels over `r length(dax)` observations, measured in index points. The plot shows a strong upward long-run movement, so the mean is clearly not constant over time. The movement is not linear; the series rises unevenly, with both local accelerations and local pullbacks. There is no simple repeated seasonal pattern visible in the level plot. The spread is much larger in the later part of the series than in the earlier part, so the series also appears heteroscedastic. The statistical range is `r round(min(dax), 2)` to `r round(max(dax), 2)`, so the total range is `r round(diff(range(dax)), 2)` index points. No volatility. Since the mean and variance behavior both change over time, the DAX level series does not satisfy stationarity.
+
+\newpage
+
+## Problem 4 (b)
+
+\begin{problem}[Problem 4 (b)]
+Plot the log returns of the DAX. How does it differ from the original series?
+\end{problem}
+
+For the log returns, I use
+\[
+R_t = \log(X_t)-\log(X_{t-1}) = (1-B)\log(X_t).
+\]
+
+```{r p4b-code, results='hide'}
+# Build the DAX log-return series.
+dax_log_return <- diff(log(dax))
+head(data.frame(
+  t = 2:length(dax),
+  Log_Return = dax_log_return
+))
+```
+
+```{r p4b-plot, fig.width=8.5, fig.height=4.5, out.width='\\linewidth'}
+with_family({
+  # Plot the DAX log returns.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(1, 1), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.1, cex.lab = 1, cex.axis = 0.95)
+  astsa::tsplot(
+    stats::ts(dax_log_return, start = 2, frequency = 260),
+    main = 'DAX Log Returns',
+    xlab = 'Time',
+    ylab = 'Log Return',
+    col = 'firebrick',
+    lwd = 2
+  )
+})
+```
+
+Compared with the original DAX level series, the log-return series is very different. Specifically, the log returns fluctuate around a center near `r round(mean(dax_log_return), 6)` rather than following a strong upward path. There is no visible deterministic trend in the log returns. The range is much smaller: from `r round(min(dax_log_return), 4)` to `r round(max(dax_log_return), 4)`. The spread is much more stable than in the original level series, although there are still some clusters of larger and smaller movements, which is typical in financial-return data. No volatility still. Overall, the log-return series looks much more like short-run noise around a constant mean than the original series does.
+
+\newpage
+
+## Problem 4 (c)
+
+\begin{problem}[Problem 4 (c)]
+Does the series appear more stationary after taking log returns? Justify.
+\end{problem}
+
+Yes, the series appears much more stationary after taking log returns. As I describe in the earlier part, the strong trend in the mean is removed and the variance is much more stable than on the original scale. Therefore, while the log-return series is not guaranteed to be perfectly stationary in every sense, but it appears much *more* stationary than the original DAX level series and is far closer to a stationary time series.
+
+\newpage
+
+# Problem 5
+
+\begin{problem}[Problem 5]
+For your data analysis project, does your detrended and deseasonalized data (both response and all predictors) need any transformations? Justify. Show the transformations and how they work for your variables.
+\end{problem}
+
+From Homework 5, \(G_t\) denotes the game-by-game even-strength GSAx response, measured in goals, at aligned game index \(t\). The predictor \(S_t\) denotes the game-by-game even-strength save percentage, recorded as a proportion, and \(X_t\) denotes the game-by-game team even-strength xGF\%, recorded in percentage points. The final Homework 5 lagged regression models used \(S_{t-4}\), \(X_{t-8}\), and \(G_{t-4}\) for Blackwood, and \(S_{t-2}\), \(X_{t-4}\), and \(G_{t-2}\) for Shesterkin. So, in this homework, the response series are already detrended and deseasonalized because I use the residuals from those final lagged regression models. The question is whether those residual response series, together with the aligned predictor series carried into the final models, still show enough heteroscedasticity to require an additional variance-stabilizing transformation. To do this, I will do the following:
+
+1. Check the detrended and deseasonalized series for visible fanning-out or a clear increase in spread over time.
+2. Compare first-half and second-half sample variances (as we did in this homework; not really sure if this is a standard convention or not)
+3. If the spread still increases enough to justify transformation, then compare candidate shifted log and shifted Box-Cox versions.
+4. If not, keep the existing scale and only mean-correct.
+
+So the detrended and deseasonalized response series are
+\[
+\widehat{\varepsilon}^{(B)}_t = G_t - \widehat{G_t}^{(B)}
+\quad \text{and} \quad
+\widehat{\varepsilon}^{(S)}_t = G_t - \widehat{G_t}^{(S)}.
+\]
+Here, \(\widehat{G_t}^{(B)}\) and \(\widehat{G_t}^{(S)}\) are the fitted values from the final Homework 5 lagged regression models for Blackwood and Shesterkin, respectively.
+
+```{r pproj-code, results='hide'}
+# Rebuild the final Homework 5 lagged regression models.
+blackwood_hw5 <- build_lagged_regression_hw5(blackwood_gbgs, sv_lead = 4, x_lead = 8, g_lead = 4)
+shesterkin_hw5 <- build_lagged_regression_hw5(shesterkin_gbgs, sv_lead = 2, x_lead = 4, g_lead = 2)
+
+# Extract the detrended and deseasonalized response series.
+blackwood_resid <- stats::residuals(blackwood_hw5$fit)
+shesterkin_resid <- stats::residuals(shesterkin_hw5$fit)
+
+# Build mean-only corrections for the already-detrended response series.
+blackwood_mean_fit <- stats::lm(blackwood_resid ~ 1)
+shesterkin_mean_fit <- stats::lm(shesterkin_resid ~ 1)
+
+# Helper to summarize variance balance before and after shifted log/Box-Cox transforms.
+shifted_transform_review <- function(z, label) {
+  n <- length(z)
+  h <- floor(n / 2)
+  shift_c <- if (min(z) <= 0) abs(min(z)) + 1 else 0
+  z_shift <- z + shift_c
+  lambda_hat <- forecast::BoxCox.lambda(z_shift)
+  z_log <- log(z_shift)
+  z_bc <- forecast::BoxCox(z_shift, lambda = lambda_hat)
+  data.frame(
+    Series = label,
+    Shift = shift_c,
+    Lambda = lambda_hat,
+    Raw_Ratio = stats::var(z[(h + 1):n]) / stats::var(z[1:h]),
+    Shifted_Log_Ratio = stats::var(z_log[(h + 1):n]) / stats::var(z_log[1:h]),
+    Shifted_BoxCox_Ratio = stats::var(z_bc[(h + 1):n]) / stats::var(z_bc[1:h]),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Build project-specific diagnostic tables from the aligned series actually used in Homework 5.
+blackwood_diag_table <- rbind(
+  split_variance_table(blackwood_resid, '$\\widehat{\\varepsilon}^{(B)}_t$'),
+  split_variance_table(blackwood_hw5$data$sv, '$S_{t-4}$'),
+  split_variance_table(blackwood_hw5$data$xgf, '$X_{t-8}$'),
+  split_variance_table(blackwood_hw5$data$gLag, '$G_{t-4}$')
+)
+blackwood_diag_table$Mean <- c(
+  mean(blackwood_resid),
+  mean(blackwood_hw5$data$sv),
+  mean(blackwood_hw5$data$xgf),
+  mean(blackwood_hw5$data$gLag)
+)
+blackwood_diag_table$Min <- c(
+  min(blackwood_resid),
+  min(blackwood_hw5$data$sv),
+  min(blackwood_hw5$data$xgf),
+  min(blackwood_hw5$data$gLag)
+)
+blackwood_diag_table$Max <- c(
+  max(blackwood_resid),
+  max(blackwood_hw5$data$sv),
+  max(blackwood_hw5$data$xgf),
+  max(blackwood_hw5$data$gLag)
+)
+blackwood_diag_table <- blackwood_diag_table[, c('Series', 'Mean', 'Min', 'Max', 'First_Half', 'Second_Half', 'Ratio_Second_to_First')]
+
+shesterkin_diag_table <- rbind(
+  split_variance_table(shesterkin_resid, '$\\widehat{\\varepsilon}^{(S)}_t$'),
+  split_variance_table(shesterkin_hw5$data$sv, '$S_{t-2}$'),
+  split_variance_table(shesterkin_hw5$data$xgf, '$X_{t-4}$'),
+  split_variance_table(shesterkin_hw5$data$gLag, '$G_{t-2}$')
+)
+shesterkin_diag_table$Mean <- c(
+  mean(shesterkin_resid),
+  mean(shesterkin_hw5$data$sv),
+  mean(shesterkin_hw5$data$xgf),
+  mean(shesterkin_hw5$data$gLag)
+)
+shesterkin_diag_table$Min <- c(
+  min(shesterkin_resid),
+  min(shesterkin_hw5$data$sv),
+  min(shesterkin_hw5$data$xgf),
+  min(shesterkin_hw5$data$gLag)
+)
+shesterkin_diag_table$Max <- c(
+  max(shesterkin_resid),
+  max(shesterkin_hw5$data$sv),
+  max(shesterkin_hw5$data$xgf),
+  max(shesterkin_hw5$data$gLag)
+)
+shesterkin_diag_table <- shesterkin_diag_table[, c('Series', 'Mean', 'Min', 'Max', 'First_Half', 'Second_Half', 'Ratio_Second_to_First')]
+
+# Compare candidate shifted log and shifted Box-Cox transforms for every project series.
+blackwood_transform_table <- rbind(
+  shifted_transform_review(blackwood_resid, '$\\widehat{\\varepsilon}^{(B)}_t$'),
+  shifted_transform_review(blackwood_hw5$data$sv, '$S_{t-4}$'),
+  shifted_transform_review(blackwood_hw5$data$xgf, '$X_{t-8}$'),
+  shifted_transform_review(blackwood_hw5$data$gLag, '$G_{t-4}$')
+)
+shesterkin_transform_table <- rbind(
+  shifted_transform_review(shesterkin_resid, '$\\widehat{\\varepsilon}^{(S)}_t$'),
+  shifted_transform_review(shesterkin_hw5$data$sv, '$S_{t-2}$'),
+  shifted_transform_review(shesterkin_hw5$data$xgf, '$X_{t-4}$'),
+  shifted_transform_review(shesterkin_hw5$data$gLag, '$G_{t-2}$')
+)
+
+# Build the selected additional Shesterkin Box-Cox transforms.
+shk_res_shift <- shesterkin_transform_table$Shift[1]
+shk_res_lambda <- shesterkin_transform_table$Lambda[1]
+shk_res_bc <- forecast::BoxCox(shesterkin_resid + shk_res_shift, lambda = shk_res_lambda)
+
+shk_glag_shift <- shesterkin_transform_table$Shift[4]
+shk_glag_lambda <- shesterkin_transform_table$Lambda[4]
+shk_glag_bc <- forecast::BoxCox(shesterkin_hw5$data$gLag + shk_glag_shift, lambda = shk_glag_lambda)
+
+shk_res_bc_mean <- mean(shk_res_bc)
+shk_glag_bc_mean <- mean(shk_glag_bc)
+```
+
+```{r pproj-blackwood-plot, fig.width=8.5, fig.height=8, out.width='\\linewidth'}
+with_family({
+  # Plot Blackwood's detrended response and aligned predictors to assess spread over time.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 2), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.0, cex.lab = 0.95, cex.axis = 0.9)
+  astsa::tsplot(ts(blackwood_resid, start = 1, frequency = 1), main = 'Blackwood: Detrended GSAx Residuals', xlab = 'Aligned Index', ylab = 'Residual GSAx', col = 'darkgreen', lwd = 2)
+  astsa::tsplot(ts(blackwood_hw5$data$sv, start = 1, frequency = 1), main = 'Blackwood: Lagged Save Percentage (t-4)', xlab = 'Aligned Index', ylab = 'S(t-4)', col = 'firebrick', lwd = 2)
+  astsa::tsplot(ts(blackwood_hw5$data$xgf, start = 1, frequency = 1), main = 'Blackwood: Lagged Team xGF% (t-8)', xlab = 'Aligned Index', ylab = 'X(t-8)', col = 'navy', lwd = 2)
+  astsa::tsplot(ts(blackwood_hw5$data$gLag, start = 1, frequency = 1), main = 'Blackwood: Lagged GSAx (t-4)', xlab = 'Aligned Index', ylab = 'G(t-4)', col = 'purple4', lwd = 2)
+})
+```
+
+```{r pproj-blackwood-diag-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_diag_table,
+  digits = 4,
+  caption = 'Blackwood detrended and deseasonalized series diagnostics',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Mean', 'Min', 'Max', '1st-Half Var.', '2nd-Half Var.', '2nd/1st')
+)
+```
+
+```{r pproj-blackwood-transform-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_transform_table,
+  digits = 4,
+  caption = 'Blackwood shifted log and Box-Cox comparison',
+  size = '\\small',
+  col_names = c('Series', 'Shift', '$\\hat{\\lambda}$', 'Raw', 'Shifted Log', 'Shifted Box-Cox')
+)
+```
+
+First, the key is that a variance-stabilizing transformation is only needed if the spread still increases with time after detrending and deseasonalizing. The response residual plot does not show marked fanning-out, and its first-half and second-half variances are `r round(blackwood_diag_table$First_Half[1], 4)` and `r round(blackwood_diag_table$Second_Half[1], 4)`, giving a variance ratio of `r round(blackwood_diag_table$Ratio_Second_to_First[1], 4)`. So the detrended response already has fairly stable spread. For the aligned predictors, the later-half spread is somewhat larger for \(S_{t-4}\) and \(X_{t-8}\), with variance ratios `r round(blackwood_diag_table$Ratio_Second_to_First[2], 4)` and `r round(blackwood_diag_table$Ratio_Second_to_First[3], 4)`, but the plots do not show the kind of strong variance growth but rather only some extreme outliers, which is probably driving up this ratio. More importantly, the candidate transformations do not materially improve those ratios. For \(S_{t-4}\), the shifted-log ratio is `r round(blackwood_transform_table$Shifted_Log_Ratio[2], 4)` and the shifted Box-Cox ratio is `r round(blackwood_transform_table$Shifted_BoxCox_Ratio[2], 4)`, compared with the raw ratio `r round(blackwood_transform_table$Raw_Ratio[2], 4)`. For \(X_{t-8}\), the corresponding values are `r round(blackwood_transform_table$Shifted_Log_Ratio[3], 4)`, `r round(blackwood_transform_table$Shifted_BoxCox_Ratio[3], 4)`, and `r round(blackwood_transform_table$Raw_Ratio[3], 4)`, which are all very similar. So for Blackwood, the evidence does not support an additional variance-stabilizing transformation. The appropriate final transformation is just mean correction:
+\[
+\widetilde{\varepsilon}^{(B)}_t = \widehat{\varepsilon}^{(B)}_t - \overline{\widehat{\varepsilon}^{(B)}_t},
+\quad
+\widetilde{S}_{t-4} = S_{t-4} - \overline{S_{t-4}},
+\quad
+\widetilde{X}_{t-8} = X_{t-8} - \overline{X_{t-8}},
+\quad
+\widetilde{G}_{t-4} = G_{t-4} - \overline{G_{t-4}}.
+\]
+For the response, the mean-only model is
+\[
+\widehat{\varepsilon}^{(B)}_t = \hat{\mu}_B + W_t,
+\qquad
+\hat{\mu}_B = `r format(round(stats::coef(blackwood_mean_fit)[1], 6), nsmall = 6)`,
+\]
+so the centering is essentially zero, as expected. Putting Homework 5 and Homework 6 together, the final fitted Blackwood model remains on the original response scale:
+\[
+G_t = `r format(round(stats::coef(blackwood_hw5$fit)[1], 6), nsmall = 6)`
+`r if (stats::coef(blackwood_hw5$fit)[2] >= 0) " + " else " - "` `r format(round(abs(stats::coef(blackwood_hw5$fit)[2]), 6), nsmall = 6)` S_{t-4}
+`r if (stats::coef(blackwood_hw5$fit)[3] >= 0) " + " else " - "` `r format(round(abs(stats::coef(blackwood_hw5$fit)[3]), 6), nsmall = 6)` X_{t-8}
+`r if (stats::coef(blackwood_hw5$fit)[4] >= 0) " + " else " - "` `r format(round(abs(stats::coef(blackwood_hw5$fit)[4]), 6), nsmall = 6)` G_{t-4}
+ + W_t.
+\]
+Here, \(G_t\) and \(G_{t-4}\) are game-by-game even-strength GSAx in goals, \(S_{t-4}\) is lag-4 game-by-game even-strength save percentage recorded as a proportion, \(X_{t-8}\) is lag-8 team even-strength xGF\% recorded in percentage points, and \(W_t\) is a mean-zero error term.
+
+```{r pproj-blackwood-final-check, fig.width=8.5, fig.height=4.2, out.width='\\linewidth'}
+with_family({
+  # Plot Blackwood's final centered response and its ACF to check for leftover mean structure.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(1, 2), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.0, cex.lab = 0.95, cex.axis = 0.9)
+  astsa::tsplot(ts(blackwood_final_centered, start = 1, frequency = 1), main = 'Blackwood: Final Centered Response', xlab = 'Aligned Index', ylab = 'Centered Residual', col = 'darkgreen', lwd = 2)
+  acf(blackwood_final_centered, lag.max = 20, main = '', col = 'darkgreen', lwd = 2)
+  title(main = 'Blackwood: Final Response ACF')
+})
+```
+
+After this final mean correction, Blackwood's centered response has sample mean `r format(round(mean(blackwood_final_centered), 6), nsmall = 6)`. In the time plot, it fluctuates around \(0\) with no obvious remaining pattern in the mean. In the ACF plot, the only clearly dominant value is at lag \(0\), while the remaining autocorrelations stay small overall. Overall, the final series is adequately mean-corrected and random.
+
+```{r pproj-shesterkin-plot, fig.width=8.5, fig.height=8, out.width='\\linewidth'}
+with_family({
+  # Plot Shesterkin's detrended response and aligned predictors to assess spread over time.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(2, 2), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.0, cex.lab = 0.95, cex.axis = 0.9)
+  astsa::tsplot(ts(shesterkin_resid, start = 1, frequency = 1), main = 'Shesterkin: Detrended GSAx Residuals', xlab = 'Aligned Index', ylab = 'Residual GSAx', col = 'darkgreen', lwd = 2)
+  astsa::tsplot(ts(shesterkin_hw5$data$sv, start = 1, frequency = 1), main = 'Shesterkin: Lagged Save Percentage (t-2)', xlab = 'Aligned Index', ylab = 'S(t-2)', col = 'firebrick', lwd = 2)
+  astsa::tsplot(ts(shesterkin_hw5$data$xgf, start = 1, frequency = 1), main = 'Shesterkin: Lagged Team xGF% (t-4)', xlab = 'Aligned Index', ylab = 'X(t-4)', col = 'navy', lwd = 2)
+  astsa::tsplot(ts(shesterkin_hw5$data$gLag, start = 1, frequency = 1), main = 'Shesterkin: Lagged GSAx (t-2)', xlab = 'Aligned Index', ylab = 'G(t-2)', col = 'purple4', lwd = 2)
+})
+```
+
+```{r pproj-shesterkin-diag-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_diag_table,
+  digits = 4,
+  caption = 'Shesterkin detrended and deseasonalized series diagnostics',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Mean', 'Min', 'Max', '1st-Half Var.', '2nd-Half Var.', '2nd/1st')
+)
+```
+
+```{r pproj-shesterkin-transform-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_transform_table,
+  digits = 4,
+  caption = 'Shesterkin shifted log and Box-Cox comparison',
+  size = '\\small',
+  col_names = c('Series', 'Shift', '$\\hat{\\lambda}$', 'Raw', 'Shifted Log', 'Shifted Box-Cox')
+)
+```
+
+For Shesterkin, the plot evidence is a little different. In the detrended response residuals \(\widehat{\varepsilon}^{(S)}_t\), and also in the lagged response predictor \(G_{t-2}\), the later part of the series does show mild fanning-out. This is consistent with the variance ratios: for \(\widehat{\varepsilon}^{(S)}_t\), the first-half and second-half variances are `r round(shesterkin_diag_table$First_Half[1], 4)` and `r round(shesterkin_diag_table$Second_Half[1], 4)`, giving ratio `r round(shesterkin_diag_table$Ratio_Second_to_First[1], 4)`; for \(G_{t-2}\), the ratio is `r round(shesterkin_diag_table$Ratio_Second_to_First[4], 4)`. So for Shesterkin, some additional variance stabilization is reasonable for those two series. Among the candidate transformations, the shifted log does not help, since it raises the variance ratios to `r round(shesterkin_transform_table$Shifted_Log_Ratio[1], 4)` for \(\widehat{\varepsilon}^{(S)}_t\) and `r round(shesterkin_transform_table$Shifted_Log_Ratio[4], 4)` for \(G_{t-2}\). The shifted Box-Cox transformation improves them to `r round(shesterkin_transform_table$Shifted_BoxCox_Ratio[1], 4)` and `r round(shesterkin_transform_table$Shifted_BoxCox_Ratio[4], 4)`, respectively, which is better than the raw scale in both cases. Therefore, for Shesterkin I use an additional shifted Box-Cox transformation for the detrended response residuals and for \(G_{t-2}\):
+\[
+Y^{(S,\varepsilon)}_t
+= \frac{\left(\widehat{\varepsilon}^{(S)}_t + c_{\varepsilon}\right)^{\lambda_{\varepsilon}} - 1}{\lambda_{\varepsilon}},
+\qquad
+c_{\varepsilon} = `r round(shk_res_shift, 4)`,
+\qquad
+\lambda_{\varepsilon} = `r round(shk_res_lambda, 4)`,
+\]
+and
+\[
+Y^{(S,G)}_t
+= \frac{\left(G_{t-2} + c_G\right)^{\lambda_G} - 1}{\lambda_G},
+\qquad
+c_G = `r round(shk_glag_shift, 4)`,
+\qquad
+\lambda_G = `r round(shk_glag_lambda, 4)`.
+\]
+
+For \(S_{t-2}\) and \(X_{t-4}\), I do not transform. Their variance ratios are only `r round(shesterkin_diag_table$Ratio_Second_to_First[2], 4)` and `r round(shesterkin_diag_table$Ratio_Second_to_First[3], 4)`, and the candidate transformed versions do not improve them enough to justify changing scale. So for Shesterkin, the final transformed set is
+\[
+Y^{(S,\varepsilon)}_t,\quad S_{t-2},\quad X_{t-4},\quad Y^{(S,G)}_t.
+\]
+At the end, just like Blackwood, I also do the mean correction. So the final centered set is
+\[
+\widetilde{Y}^{(S,\varepsilon)}_t = Y^{(S,\varepsilon)}_t - \overline{Y^{(S,\varepsilon)}_t},
+\quad
+\widetilde{S}_{t-2} = S_{t-2} - \overline{S_{t-2}},
+\quad
+\widetilde{X}_{t-4} = X_{t-4} - \overline{X_{t-4}},
+\quad
+\widetilde{Y}^{(S,G)}_t = Y^{(S,G)}_t - \overline{Y^{(S,G)}_t}.
+\]
+For the transformed response series, the mean-only correction is
+\[
+Y^{(S,\varepsilon)}_t = \mu_{S,\varepsilon} + W_t,
+\qquad
+\mu_{S,\varepsilon} = `r format(round(shk_res_bc_mean, 6), nsmall = 6)`,
+\]
+and for the transformed lagged GSAx series,
+\[
+\overline{Y^{(S,G)}_t} = `r format(round(shk_glag_bc_mean, 6), nsmall = 6)`.
+\]
+
+Putting Homework 5 and Homework 6 together, the final fitted Shesterkin model is written in two parts. The fitted lagged-regression mean equation from Homework 5 is
+\[
+G_t = `r format(round(stats::coef(shesterkin_hw5$fit)[1], 6), nsmall = 6)`
+`r if (stats::coef(shesterkin_hw5$fit)[2] >= 0) " + " else " - "` `r format(round(abs(stats::coef(shesterkin_hw5$fit)[2]), 6), nsmall = 6)` S_{t-2}
+`r if (stats::coef(shesterkin_hw5$fit)[3] >= 0) " + " else " - "` `r format(round(abs(stats::coef(shesterkin_hw5$fit)[3]), 6), nsmall = 6)` X_{t-4}
+`r if (stats::coef(shesterkin_hw5$fit)[4] >= 0) " + " else " - "` `r format(round(abs(stats::coef(shesterkin_hw5$fit)[4]), 6), nsmall = 6)` G_{t-2}
+ + \widehat{\varepsilon}^{(S)}_t,
+\]
+where \(G_t\) and \(G_{t-2}\) are game-by-game even-strength GSAx in goals, \(S_{t-2}\) is lag-2 game-by-game even-strength save percentage recorded as a proportion, and \(X_{t-4}\) is lag-4 team even-strength xGF\% recorded in percentage points. Homework 6 then treats the remaining response-side error by
+\[
+Y^{(S,\varepsilon)}_t
+= \frac{\left(\widehat{\varepsilon}^{(S)}_t + `r round(shk_res_shift, 4)`\right)^{`r round(shk_res_lambda, 4)`} - 1}{`r round(shk_res_lambda, 4)`}
+= `r format(round(shk_res_bc_mean, 6), nsmall = 6)` + W_t,
+\]
+with \(W_t\) denoting the final mean-zero white-noise term after the transformation and mean correction.
+
+```{r pproj-shesterkin-final-check, fig.width=8.5, fig.height=4.2, out.width='\\linewidth'}
+with_family({
+  # Plot Shesterkin's final centered transformed response and its ACF to check for leftover mean structure.
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mfrow = c(1, 2), mar = c(4.2, 4.5, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.0, cex.lab = 0.95, cex.axis = 0.9)
+  astsa::tsplot(ts(shesterkin_final_centered, start = 1, frequency = 1), main = 'Shesterkin: Final Centered Response', xlab = 'Aligned Index', ylab = 'Centered Transformed Response', col = 'darkgreen', lwd = 2)
+  acf(shesterkin_final_centered, lag.max = 20, main = '', col = 'darkgreen', lwd = 2)
+  title(main = 'Shesterkin: Final Response ACF')
+})
+```
+
+After the shifted Box-Cox step and the final mean correction, Shesterkin's centered response has sample mean `r format(round(mean(shesterkin_final_centered), 6), nsmall = 6)`. In the time plot, it fluctuates around \(0\) with no obvious remaining pattern in the mean. In the ACF plot, the only clearly dominant value is at lag \(0\), while the remaining autocorrelations stay small overall. So for Shesterkin, the final transformed response series is also adequately mean-corrected and random.
