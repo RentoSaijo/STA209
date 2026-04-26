@@ -1,0 +1,332 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Extra Credit
+author: |
+  Rento Saijo
+date: 'May 12, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\Cov}{\mathrm{Cov}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+font_path <- '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf'
+if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) {
+  sysfonts::font_add(
+    family = 'cmuserif',
+    regular = '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf',
+    bold = '/Users/rsai_91/Library/Fonts/cmu.serif-bold.ttf',
+    italic = '/Users/rsai_91/Library/Fonts/cmu.serif-italic.ttf',
+    bolditalic = '/Users/rsai_91/Library/Fonts/cmu.serif-bolditalic.ttf'
+  )
+  showtext::showtext_opts(dpi = 500)
+  showtext::showtext_auto(enable = TRUE)
+  knitr::opts_chunk$set(dev = 'CairoPDF')
+  graphics::par(family = 'cmuserif')
+}
+```
+
+# Disclosure
+
+GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text and equations. Page-formatting code was also provided by Derin Gezgin.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem 1]
+Consider a time series defined by
+\[
+X_t = \delta + X_{t-1} + W_t,
+\]
+for \(t=1,2,\ldots\) and \(X_0=0\), where \(W_t\) is a white noise with mean \(0\) and variance \(1\).
+\end{problem}
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+Identify the model.
+\end{problem}
+
+The model
+\[
+X_t = \delta + X_{t-1} + W_t
+\]
+is a random walk with drift \(\delta\). That is, each new value equals the previous value, plus a constant drift term \(\delta\), plus a white-noise term \(W_t\).
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+Show that \(X_t\) can be written as \(X_t=t\delta+\sum_{j=1}^{t}W_j\).
+\end{problem}
+
+Starting from
+\[
+X_t = \delta + X_{t-1} + W_t,
+\]
+substitute recursively:
+\[
+\begin{aligned}
+X_t
+&= \delta + X_{t-1} + W_t \\
+&= \delta + (\delta + X_{t-2} + W_{t-1}) + W_t \\
+&= 2\delta + X_{t-2} + W_{t-1} + W_t \\
+&= 2\delta + (\delta + X_{t-3} + W_{t-2}) + W_{t-1} + W_t \\
+&= 3\delta + X_{t-3} + W_{t-2} + W_{t-1} + W_t \\
+&\ \ \vdots \\
+&= t\delta + X_0 + \sum_{j=1}^{t} W_j.
+\end{aligned}
+\]
+Since the problem gives \(X_0=0\), this becomes
+\[
+X_t = t\delta + \sum_{j=1}^{t} W_j.
+\]
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+Find the mean and ACVF of \(X_t\).
+\end{problem}
+
+From part (b),
+\[
+X_t = t\delta + \sum_{j=1}^{t} W_j.
+\]
+
+First, compute the mean:
+\[
+\begin{aligned}
+\E(X_t)
+&= \E\left(t\delta + \sum_{j=1}^{t} W_j\right) \\
+&= \E(t\delta) + \sum_{j=1}^{t} \E(W_j) \\
+&= t\delta + \sum_{j=1}^{t} 0 \\
+&= t\delta.
+\end{aligned}
+\]
+Hence,
+\[
+\mu_X(t) = t\delta.
+\]
+
+Now, compute the auto-covariance function. For integers \(h\) such that \(t+h \ge 0\),
+\[
+\gamma_X(t,h) = \Cov(X_{t+h},X_t) = \E[(X_{t+h}-\mu_{t+h})(X_t-\mu_t)].
+\]
+Since
+\[
+\mu_{t+h} = (t+h)\delta
+\quad \text{and} \quad
+\mu_t = t\delta,
+\]
+and from part (b),
+\[
+X_{t+h} = (t+h)\delta + \sum_{j=1}^{t+h} W_j
+\quad \text{and} \quad
+X_t = t\delta + \sum_{k=1}^{t} W_k,
+\]
+it follows that
+\[
+\begin{aligned}
+X_{t+h}-\mu_{t+h}
+&= \left((t+h)\delta + \sum_{j=1}^{t+h} W_j\right) - (t+h)\delta \\
+&= \sum_{j=1}^{t+h} W_j,
+\end{aligned}
+\]
+and
+\[
+\begin{aligned}
+X_t-\mu_t
+&= \left(t\delta + \sum_{k=1}^{t} W_k\right) - t\delta \\
+&= \sum_{k=1}^{t} W_k.
+\end{aligned}
+\]
+Therefore,
+\[
+\begin{aligned}
+\gamma_X(t,h)
+&= \E\left[\left(\sum_{j=1}^{t+h} W_j\right)\left(\sum_{k=1}^{t} W_k\right)\right] \\
+&= \sum_{j=1}^{t+h} \sum_{k=1}^{t} \E(W_jW_k).
+\end{aligned}
+\]
+Because \(W_t\) is white noise with variance \(1\),
+\[
+\E(W_jW_k) =
+\begin{cases}
+1, & j=k,\\
+0, & j \neq k.
+\end{cases}
+\]
+
+Now, let us evaluate the expression case-by-case. If \(h \ge 0\), then
+\[
+\begin{aligned}
+\gamma_X(t,h)
+&= \sum_{j=1}^{t+h} \sum_{k=1}^{t} \E(W_jW_k).
+\end{aligned}
+\]
+Here, the only matching indices are
+\[
+j=k=1,2,\ldots,t,
+\]
+so there are \(t\) nonzero terms, each equal to \(1\). Therefore,
+\[
+\gamma_X(t,h)=t.
+\]
+
+If \(-t \le h < 0\), then \(t+h < t\), so the only matching indices are
+\[
+j=k=1,2,\ldots,t+h.
+\]
+Thus, there are \(t+h\) nonzero terms, each equal to \(1\). Therefore,
+\[
+\gamma_X(t,h)=t+h.
+\]
+
+Hence, the ACVF is
+\[
+\gamma_X(t,h) =
+\begin{cases}
+t, & h \ge 0,\\
+t+h, & -t \le h < 0.
+\end{cases}
+\]
+
+\newpage
+
+## Problem 1 (d)
+
+\begin{problem}[Problem 1 (d)]
+Is this time series stationary? Justify.
+\end{problem}
+
+No, \(X_t\) is not stationary. For (weak) stationarity, two conditions are required:
+
+1. The mean function must not depend on time \(t\).
+2. The ACVF must depend only on lag \(h\), not on time \(t\).
+
+But here,
+\[
+\mu_X(t) = t\delta,
+\]
+which depends on \(t\) unless \(\delta=0\). So, in general, the mean is not constant over time. Therefore, the process already fails the first condition for weak stationarity. Hence, \(X_t\) is not stationary.
