@@ -1,0 +1,1388 @@
+---
+title: |
+  STA 209: Introduction to Time Series Analysis
+subtitle: |
+  Homework 7
+author: |
+  Rento Saijo
+date: 'May 1, 2026'
+fontsize: 10pt
+documentclass: extarticle
+geometry: top=1.5in, bottom=1.5in, left=1.5in, right=1.5in
+urlcolor: blue
+linkcolor: blue
+citecolor: blue
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+    toc: false
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: true
+
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \usepackage{hyperref}
+    \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+    \usepackage{float}
+    \usepackage{fvextra}
+    \usepackage{fancyhdr}
+    \usepackage{lastpage}
+    \usepackage{soul}
+    \usepackage{etoolbox}
+    \usepackage{microtype}
+    \usepackage{tcolorbox}
+    \usepackage{enumitem}
+    \usepackage{fancyvrb}
+    \usepackage{xspace}
+    \allowdisplaybreaks
+    \setcounter{tocdepth}{2}
+    \setcounter{secnumdepth}{0}
+    \floatplacement{figure}{H}
+    \makeatletter
+    \newcommand{\@subtitle}{}
+    \newcommand{\subtitle}[1]{\gdef\@subtitle{#1}}
+    \newcommand{\DocSubtitle}{\@subtitle}
+    \renewcommand{\maketitle}{
+      \thispagestyle{plain}
+      \null
+      \vfill
+      \begin{center}
+        {\Large \textsc{\@title} \par}\vskip 0.5em
+        {\LARGE \bfseries \@subtitle \par}\vskip 0.75em
+        {\large \@author \par}\vskip 0.5em
+        {\normalsize \@date \par}
+      \end{center}
+      \vfill
+      \tableofcontents
+      \vspace{1em}
+      \clearpage
+    }
+    \AfterEndEnvironment{Highlighting}{\setcounter{CodeLine}{\numexpr\value{CodeLine}+\FV@CodeLineNo\relax}}
+    \makeatother
+    \fancypagestyle{plain}{
+      \fancyhf{}
+      \renewcommand{\headrulewidth}{0pt}
+      \renewcommand{\footrulewidth}{0pt}
+    }
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyfoot[C]{\small\textsc{Page}~\thepage~\textsc{of}~\pageref{LastPage}}
+    \fancyhead[L]{\textsc{Rento Saijo}}
+    \fancyhead[R]{\textsc{\DocSubtitle}}
+    \fancyhead[C]{\textsc{\rightmark}}
+    \renewcommand{\headrulewidth}{0.5pt}
+    \renewcommand{\footrulewidth}{0.5pt}
+    \newcounter{CodeLine}
+    \newcounter{cell}
+    \AtBeginEnvironment{Highlighting}{\stepcounter{cell}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+      frame=single,
+      rulecolor=\color{black},
+      framesep=2mm,
+      label=\footnotesize Cell \thecell,
+      labelposition=topline,
+      commandchars=\\\{\},
+      breaklines=true,
+      breakanywhere=false,
+      breaksymbol={},
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=\numexpr\value{CodeLine}+1\relax,
+      fontsize=\small
+    }
+    \DefineVerbatimEnvironment{verbatim}{Verbatim}{
+      breaklines=true,
+      breakanywhere=true,
+      numbers=left,
+      numbersep=3pt,
+      firstnumber=1,
+      fontsize=\footnotesize
+    }
+    \newtcolorbox{problem}[1][]{
+      title={\textsc{#1}}
+    }
+    \renewcommand{\contentsname}{Table of Contents}
+    \newcommand{\E}{\mathrm{E}}
+    \newcommand{\Var}{\mathrm{Var}}
+    \newcommand{\Cov}{\mathrm{Cov}}
+    \newcommand{\R}{\textsf{R}\xspace}
+    \newcommand{\SD}{\mathrm{SD}}
+    \newcommand{\SE}{\mathrm{SE}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center'
+)
+options(width = 125, scipen = 999)
+
+font_path <- '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf'
+if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) {
+  sysfonts::font_add(
+    family = 'cmuserif',
+    regular = '/Users/rsai_91/Library/Fonts/cmu.serif-roman.ttf',
+    bold = '/Users/rsai_91/Library/Fonts/cmu.serif-bold.ttf',
+    italic = '/Users/rsai_91/Library/Fonts/cmu.serif-italic.ttf',
+    bolditalic = '/Users/rsai_91/Library/Fonts/cmu.serif-bolditalic.ttf'
+  )
+  showtext::showtext_opts(dpi = 500)
+  showtext::showtext_auto(enable = TRUE)
+  knitr::opts_chunk$set(dev = 'CairoPDF')
+  graphics::par(family = 'cmuserif')
+}
+
+plot_family <- if (
+  requireNamespace('sysfonts', quietly = TRUE) &&
+  requireNamespace('showtext', quietly = TRUE) &&
+  file.exists(font_path)
+) 'cmuserif' else graphics::par('family')
+
+with_family <- function(expr, family = plot_family) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(family = family)
+  force(expr)
+}
+
+table_latex <- function(x, digits = 4, caption = NULL, size = '\\normalsize', col_names = NULL, resize = FALSE) {
+  y <- x
+  num_cols <- sapply(y, is.numeric)
+  y[num_cols] <- lapply(y[num_cols], round, digits = digits)
+  tab <- knitr::kable(
+    y,
+    format = 'latex',
+    booktabs = TRUE,
+    caption = caption,
+    col.names = col_names,
+    align = rep('c', ncol(y)),
+    row.names = FALSE,
+    escape = FALSE,
+    position = 'H'
+  )
+  tab_chr <- paste(as.character(tab), collapse = '\n')
+  if (resize) {
+    tab_chr <- gsub(
+      '(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})',
+      '\\\\resizebox{\\\\linewidth}{!}{\\1}',
+      tab_chr,
+      perl = TRUE
+    )
+  }
+  knitr::asis_output(
+    paste0("\\begin{center}\n", size, "\n", tab_chr, "\n\\normalsize\n\\end{center}")
+  )
+}
+
+format_p <- function(p, digits = 4) {
+  if (is.na(p)) {
+    return(NA_character_)
+  }
+  if (p < 10^(-digits)) {
+    return(paste0('<', format(10^(-digits), scientific = FALSE, trim = TRUE)))
+  }
+  format(round(p, digits), nsmall = digits)
+}
+
+format_zero <- function(x, digits = 6) {
+  if (abs(x) < 10^(-digits)) {
+    return('0')
+  }
+  format(round(x, digits), nsmall = digits)
+}
+
+signed_term <- function(x, digits = 4) {
+  val <- format(round(abs(x), digits), nsmall = digits)
+  if (x >= 0) paste0('+ ', val) else paste0('- ', val)
+}
+
+split_variance_table <- function(z, label) {
+  n <- length(z)
+  h <- floor(n / 2)
+  data.frame(
+    Series = label,
+    Mean = mean(z),
+    Min = min(z),
+    Max = max(z),
+    First_Half = stats::var(z[1:h]),
+    Second_Half = stats::var(z[(h + 1):n]),
+    Ratio_Second_to_First = stats::var(z[(h + 1):n]) / stats::var(z[1:h]),
+    stringsAsFactors = FALSE
+  )
+}
+
+periodogram_info <- function(y) {
+  x <- y - mean(y)
+  n <- length(x)
+  I <- abs(stats::fft(x))^2 / n
+  half <- floor((n / 2) - 1)
+  f <- 0:half / n
+  P <- (4 / n) * I[1:(half + 1)]
+  dom_idx <- which.max(P[-1]) + 1
+  list(f = f, P = P, freq = f[dom_idx], period = 1 / f[dom_idx])
+}
+
+fit_table <- function(fit) {
+  n <- length(stats::residuals(fit))
+  r <- length(stats::coef(fit))
+  sse <- sum(stats::residuals(fit)^2)
+  f_stats <- summary(fit)$fstatistic
+  f_p <- if (is.null(f_stats)) NA_real_ else unname(stats::pf(f_stats[1], f_stats[2], f_stats[3], lower.tail = FALSE))
+  data.frame(
+    Parameters = r,
+    R2a = summary(fit)$adj.r.squared,
+    Fp = format_p(f_p),
+    AIC = stats::AIC(fit) / n,
+    AICC = log(sse / n) + ((n + r) / (n - r - 2)),
+    BIC = stats::AIC(fit, k = log(n)) / n,
+    stringsAsFactors = FALSE
+  )
+}
+
+coef_table_lm <- function(fit, term_labels) {
+  out <- as.data.frame(summary(fit)$coefficients)
+  out$Term <- rownames(out)
+  rownames(out) <- NULL
+  out <- out[, c('Term', 'Estimate', 'Std. Error', 't value', 'Pr(>|t|)')]
+  names(out) <- c('Term', 'Estimate', 'Std_Error', 't_value', 'P_Value')
+  out$Term <- term_labels
+  out$P_Value <- vapply(out$P_Value, format_p, character(1))
+  out
+}
+
+equation_from_fit <- function(fit, lhs, term_labels, digits = 6) {
+  coeffs <- stats::coef(fit)
+  fmt_abs <- function(x) format(round(abs(x), digits), nsmall = digits)
+  fmt_raw <- function(x) format(round(x, digits), nsmall = digits)
+  eq <- paste0(lhs, ' = ', fmt_raw(coeffs[1]))
+  if (length(coeffs) > 1) {
+    for (nm in names(coeffs)[-1]) {
+      sign <- if (coeffs[nm] >= 0) '+' else '-'
+      eq <- paste(eq, sign, fmt_abs(coeffs[nm]), term_labels[[nm]])
+    }
+  }
+  eq
+}
+
+linear_part_from_fit <- function(fit, term_labels, digits = 6) {
+  coeffs <- stats::coef(fit)
+  fmt_abs <- function(x) format(round(abs(x), digits), nsmall = digits)
+  fmt_raw <- function(x) format(round(x, digits), nsmall = digits)
+  eq <- fmt_raw(coeffs[1])
+  if (length(coeffs) > 1) {
+    for (nm in names(coeffs)[-1]) {
+      sign <- if (coeffs[nm] >= 0) '+' else '-'
+      eq <- paste(eq, sign, fmt_abs(coeffs[nm]), term_labels[[nm]])
+    }
+  }
+  eq
+}
+
+final_G_model_aligned <- function(fit, means, lambda, shift, sv_lag, x_lag, digits = 4) {
+  coeffs <- stats::coef(fit)
+  fmt_raw <- function(x) format(round(x, digits), nsmall = digits)
+  fmt_abs <- function(x) format(round(abs(x), digits), nsmall = digits)
+  b0 <- unname(coeffs[1])
+  b1 <- unname(coeffs['sv'])
+  b2 <- unname(coeffs['xgf'])
+  mg <- as.numeric(means['g'])
+  ms <- as.numeric(means['s'])
+  mx <- as.numeric(means['x'])
+  fl <- format(round(lambda, digits), nsmall = digits)
+  fs <- format(round(shift, digits), nsmall = digits)
+  s1 <- if (b1 >= 0) '+' else '-'
+  s2 <- if (b2 >= 0) '+' else '-'
+  row1 <- paste(fmt_raw(b0), s1, fmt_abs(b1), sprintf('(S_{t-%d} - %s)', sv_lag, fmt_raw(ms)))
+  row2 <- paste(s2, fmt_abs(b2), sprintf('(X_{t-%d} - %s) + W_t', x_lag, fmt_raw(mx)))
+  paste0(
+    'G_t &= ', fmt_raw(mg), ' + \\Big[ ', fl, ' \\big(', row1, ' \\\\ \n',
+    '&\\quad ', row2, ' \\big) + 1 \\Big]^{1/', fl, '} - ', fs
+  )
+}
+
+arima_model_equation <- function(fit, lhs = 'X_t', d = 0, digits = 6) {
+  coefs <- stats::coef(fit)
+  fmt_abs <- function(x) format(round(abs(x), digits), nsmall = digits)
+  response <- if (d == 0) lhs else paste0('\\nabla ', lhs)
+  if (length(coefs) == 0) {
+    return(paste0(response, ' = W_t'))
+  }
+  rhs <- 'W_t'
+  ar_terms <- coefs[grepl('^ar', names(coefs))]
+  ma_terms <- coefs[grepl('^ma', names(coefs))]
+  lagged_response <- function(lag) {
+    lagged_lhs <- sub('_t', paste0('_{t-', lag, '}'), lhs, fixed = TRUE)
+    if (d == 0) {
+      lagged_lhs
+    } else {
+      paste0('\\nabla ', lagged_lhs)
+    }
+  }
+  if (length(ar_terms) > 0) {
+    for (nm in names(ar_terms)) {
+      lag <- sub('ar', '', nm)
+      sign <- if (ar_terms[nm] >= 0) '+' else '-'
+      rhs <- paste(fmt_abs(ar_terms[nm]), lagged_response(lag), sign, rhs)
+    }
+  }
+  if (length(ma_terms) > 0) {
+    for (nm in names(ma_terms)) {
+      lag <- sub('ma', '', nm)
+      sign <- if (ma_terms[nm] >= 0) '+' else '-'
+      rhs <- paste(rhs, sign, fmt_abs(ma_terms[nm]), paste0('W_{t-', lag, '}'))
+    }
+  }
+  paste(response, '=', rhs)
+}
+
+lead_ccf_info <- function(predictor, response, lag.max = 9) {
+  cc <- stats::ccf(as.numeric(predictor), as.numeric(response), plot = FALSE, lag.max = lag.max)
+  lag_vals <- as.numeric(cc$lag)
+  ccf_vals <- as.numeric(cc$acf)
+  keep <- lag_vals < 0
+  out <- data.frame(
+    Lead = -lag_vals[keep],
+    CCF = ccf_vals[keep]
+  )
+  out[order(out$Lead), , drop = FALSE]
+}
+
+lead_ccf_summary <- function(info, max_lead = 9) {
+  info2 <- info[info$Lead <= max_lead, , drop = FALSE]
+  idx <- which.max(abs(info2$CCF))
+  info2[idx, , drop = FALSE]
+}
+
+adf_row <- function(z, goalie, label) {
+  out <- tseries::adf.test(z)
+  data.frame(
+    Goalie = goalie,
+    Series = label,
+    DF = unname(out$statistic),
+    Lag = as.integer(out$parameter),
+    P_Value = if (out$p.value <= 0.01) '<0.01' else format_p(out$p.value),
+    Decision = if (out$p.value < 0.05) 'Reject $H_0$' else 'Do Not Reject $H_0$',
+    stringsAsFactors = FALSE
+  )
+}
+
+plot_raw_series <- function(df, goalie_name, add_trade_lines = FALSE) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(3, 1), mar = c(4.2, 4.8, 3.1, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.15)
+  astsa::tsplot(stats::ts(df$gsax_ev, start = 1, frequency = 1), main = paste0(goalie_name, ': EV Game-by-Game GSAx'), xlab = 'Career Game Number (t)', ylab = 'GSAx at EV (Goals)', col = 'darkgreen', lwd = 2)
+  if (add_trade_lines) graphics::abline(v = df$game_number[df$team_change == 1], col = 'black', lty = 3, lwd = 2)
+  astsa::tsplot(stats::ts(df$sv_pct_ev, start = 1, frequency = 1), main = paste0(goalie_name, ': EV Game-by-Game Save Percentage'), xlab = 'Career Game Number (t)', ylab = 'SV% at EV', col = 'firebrick', lwd = 2)
+  if (add_trade_lines) graphics::abline(v = df$game_number[df$team_change == 1], col = 'black', lty = 3, lwd = 2)
+  astsa::tsplot(stats::ts(df$team_xg_pct_ev, start = 1, frequency = 1), main = paste0(goalie_name, ': Team EV xGF%'), xlab = 'Career Game Number (t)', ylab = 'Team xGF% at EV (Percent)', col = 'navy', lwd = 2)
+  if (add_trade_lines) graphics::abline(v = df$game_number[df$team_change == 1], col = 'black', lty = 3, lwd = 2)
+}
+
+plot_periodograms <- function(obj, goalie_name) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(1, 3), mar = c(4.2, 4.2, 2.8, 1.0), mgp = c(2.2, 0.7, 0), cex.main = 0.95)
+  for (nm in c('g', 's', 'x')) {
+    info <- obj$period[[nm]]
+    ttl <- switch(nm, g = 'GSAx', s = 'Save Percentage', x = 'Team xGF%')
+    graphics::plot(info$f, info$P, type = 'l', main = paste0(goalie_name, ': ', ttl), xlab = 'Frequency', ylab = 'P(frequency)', col = 'navy', lwd = 2)
+    graphics::abline(v = info$freq, col = 'red', lty = 2, lwd = 2)
+  }
+}
+
+plot_lead_ccf <- function(info, main_text, col) {
+  graphics::plot(info$Lead, info$CCF, type = 'h', lwd = 3, col = col, xlab = 'Predictor Lead (Games)', ylab = 'CCF', main = main_text, ylim = c(min(c(info$CCF, 0)) - 0.05, max(c(info$CCF, 0)) + 0.05), xaxt = 'n')
+  graphics::axis(1, at = info$Lead)
+  graphics::points(info$Lead, info$CCF, pch = 16, col = col)
+  graphics::abline(h = 0, col = 'gray40')
+}
+
+plot_goalie_ccf <- function(obj, goalie_name) {
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(2, 1), mar = c(3.8, 4.2, 2.8, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.05)
+  plot_lead_ccf(obj$lead_ccf_sv, paste0(goalie_name, ': Lead CCF of Save Percentage and GSAx'), 'firebrick')
+  plot_lead_ccf(obj$lead_ccf_x, paste0(goalie_name, ': Lead CCF of Team xGF% and GSAx'), 'navy')
+}
+
+make_lagged_pair <- function(response, predictor, lead) {
+  n <- length(response)
+  data.frame(
+    y = response[(lead + 1):n],
+    x = predictor[1:(n - lead)]
+  )
+}
+
+plot_lagged_scatter_grid <- function(obj, goalie_name, predictor = c('sv', 'xgf'), leads = 1:9) {
+  predictor <- match.arg(predictor)
+  y <- obj$data$gsax_ev
+  x <- if (predictor == 'sv') obj$data$sv_pct_ev else obj$data$team_xg_pct_ev
+  point_col <- if (predictor == 'sv') 'firebrick' else 'navy'
+  xlab_base <- if (predictor == 'sv') 'Lagged Detrended Save Percentage' else 'Lagged Detrended Team xGF%'
+  main_base <- if (predictor == 'sv') 'Detrended GSAx vs Lagged Detrended Save Percentage' else 'Detrended GSAx vs Lagged Detrended Team xGF%'
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(3, 3), mar = c(4.0, 4.0, 2.4, 0.8), mgp = c(2.2, 0.7, 0), cex.main = 0.88, cex.lab = 0.84, cex.axis = 0.80)
+  for (lead in leads) {
+    pair <- make_lagged_pair(y, x, lead)
+    corr_xy <- stats::cor(pair$x, pair$y, use = 'complete.obs')
+    graphics::plot(pair$x, pair$y, pch = 16, col = point_col, main = paste0(goalie_name, ': ', main_base, ' (Lead ', lead, ')'), xlab = paste0(xlab_base, ', lead = ', lead), ylab = 'Detrended Game-by-Game GSAx at EV (Goals)', sub = paste0('Correlation = ', format(round(corr_xy, 4), nsmall = 4)))
+    graphics::abline(stats::lm(y ~ x, data = pair), col = 'black', lwd = 2)
+  }
+}
+
+build_ts_regression <- function(df, sv_lead, x_lead) {
+  n <- nrow(df)
+  L <- max(c(sv_lead, x_lead))
+  dat <- data.frame(
+    t = df$t[(L + 1):n],
+    g = df$gsax_ev[(L + 1):n],
+    sv = df$sv_pct_ev[(L + 1 - sv_lead):(n - sv_lead)],
+    xgf = df$team_xg_pct_ev[(L + 1 - x_lead):(n - x_lead)]
+  )
+  fit <- stats::lm(g ~ sv + xgf, data = dat)
+  list(data = dat, fit = fit, sv_lead = sv_lead, x_lead = x_lead)
+}
+
+transform_review <- function(z, label) {
+  n <- length(z)
+  h <- floor(n / 2)
+  shift_c <- if (min(z) <= 0) abs(min(z)) + 1 else 0
+  z_shift <- z + shift_c
+  lambda_hat <- forecast::BoxCox.lambda(z_shift)
+  z_log <- log(z_shift)
+  z_bc <- forecast::BoxCox(z_shift, lambda = lambda_hat)
+  data.frame(
+    Series = label,
+    Shift = shift_c,
+    Lambda = lambda_hat,
+    Raw_Ratio = stats::var(z[(h + 1):n]) / stats::var(z[1:h]),
+    Shifted_Log_Ratio = stats::var(z_log[(h + 1):n]) / stats::var(z_log[1:h]),
+    Shifted_BoxCox_Ratio = stats::var(z_bc[(h + 1):n]) / stats::var(z_bc[1:h]),
+    stringsAsFactors = FALSE
+  )
+}
+
+fit_arima_one <- function(z, p, d, q) {
+  stats::arima(z, order = c(p, d, q), include.mean = FALSE, method = 'ML')
+}
+
+arima_candidate_table <- function(z, orders) {
+  rows <- NULL
+  fits <- list()
+  for (i in seq_len(nrow(orders))) {
+    p <- orders$p[i]
+    d <- orders$d[i]
+    q <- orders$q[i]
+    name <- paste0('ARIMA(', p, ',', d, ',', q, ')')
+    fit <- try(fit_arima_one(z, p, d, q), silent = TRUE)
+    if (inherits(fit, 'try-error')) {
+      rows <- rbind(rows, data.frame(Model = name, p = p, d = d, q = q, Predictors = p + q, Sigma2 = NA_real_, AIC = NA_real_, stringsAsFactors = FALSE))
+    } else {
+      fits[[name]] <- fit
+      rows <- rbind(rows, data.frame(Model = name, p = p, d = d, q = q, Predictors = p + q, Sigma2 = fit$sigma2, AIC = stats::AIC(fit), stringsAsFactors = FALSE))
+    }
+  }
+  best_name <- rows$Model[which.min(rows$AIC)]
+  list(table = rows, fits = fits, best_name = best_name, best_fit = fits[[best_name]])
+}
+
+arima_coeff_table <- function(fit) {
+  coefs <- stats::coef(fit)
+  if (length(coefs) == 0) {
+    return(data.frame(Term = 'No AR or MA coefficients', Estimate = NA_real_, stringsAsFactors = FALSE))
+  }
+  data.frame(Term = names(coefs), Estimate = as.numeric(coefs), stringsAsFactors = FALSE)
+}
+
+auto_row <- function(z, goalie, label) {
+  fit <- forecast::auto.arima(stats::ts(z, start = 1, frequency = 1), seasonal = FALSE, stepwise = FALSE, approximation = FALSE)
+  ord <- forecast::arimaorder(fit)
+  data.frame(
+    Goalie = goalie,
+    Series = label,
+    Model = paste0('ARIMA(', ord['p'], ',', ord['d'], ',', ord['q'], ')'),
+    Sigma2 = fit$sigma2,
+    AIC = fit$aic,
+    BIC = fit$bic,
+    stringsAsFactors = FALSE
+  )
+}
+
+auto_xreg_row <- function(y, xreg, goalie, response_label, predictor_label) {
+  fit <- forecast::auto.arima(
+    stats::ts(y, start = 1, frequency = 1),
+    xreg = as.matrix(xreg),
+    seasonal = FALSE,
+    stepwise = FALSE,
+    approximation = FALSE
+  )
+  ord <- forecast::arimaorder(fit)
+  data.frame(
+    Goalie = goalie,
+    Response = response_label,
+    Xreg = predictor_label,
+    Model = paste0('(', ord['p'], ',', ord['d'], ',', ord['q'], ')'),
+    Sigma2 = fit$sigma2,
+    AIC = fit$aic,
+    BIC = fit$bic,
+    stringsAsFactors = FALSE
+  )
+}
+
+fit_compare_row <- function(fit, model_label) {
+  out <- fit_table(fit)
+  cbind(Model = model_label, out)
+}
+
+detrend_goalie_data <- function(df) {
+  out <- df
+  out$gsax_ev <- df$gsax_ev - mean(df$gsax_ev)
+  out$sv_pct_ev <- df$sv_pct_ev - mean(df$sv_pct_ev)
+  out$team_xg_pct_ev <- df$team_xg_pct_ev - mean(df$team_xg_pct_ev)
+  out
+}
+
+suppressPackageStartupMessages({
+  library(astsa)
+  library(tseries)
+  library(forecast)
+})
+
+blackwood_gbgs <- utils::read.csv('data/blackwood_gbgs.csv', stringsAsFactors = FALSE)
+shesterkin_gbgs <- utils::read.csv('data/shesterkin_gbgs.csv', stringsAsFactors = FALSE)
+matched_n <- min(nrow(blackwood_gbgs), nrow(shesterkin_gbgs))
+blackwood_gbgs <- blackwood_gbgs[1:matched_n, ]
+shesterkin_gbgs <- shesterkin_gbgs[1:matched_n, ]
+blackwood_gbgs$t <- seq_len(nrow(blackwood_gbgs))
+shesterkin_gbgs$t <- seq_len(nrow(shesterkin_gbgs))
+blackwood_detrended_gbgs <- detrend_goalie_data(blackwood_gbgs)
+shesterkin_detrended_gbgs <- detrend_goalie_data(shesterkin_gbgs)
+
+blackwood <- list(
+  data = blackwood_gbgs,
+  means = c(g = mean(blackwood_gbgs$gsax_ev), s = mean(blackwood_gbgs$sv_pct_ev), x = mean(blackwood_gbgs$team_xg_pct_ev)),
+  period = list(g = periodogram_info(blackwood_gbgs$gsax_ev), s = periodogram_info(blackwood_gbgs$sv_pct_ev), x = periodogram_info(blackwood_gbgs$team_xg_pct_ev)),
+  lead_ccf_sv = lead_ccf_info(blackwood_gbgs$sv_pct_ev, blackwood_gbgs$gsax_ev),
+  lead_ccf_x = lead_ccf_info(blackwood_gbgs$team_xg_pct_ev, blackwood_gbgs$gsax_ev)
+)
+shesterkin <- list(
+  data = shesterkin_gbgs,
+  means = c(g = mean(shesterkin_gbgs$gsax_ev), s = mean(shesterkin_gbgs$sv_pct_ev), x = mean(shesterkin_gbgs$team_xg_pct_ev)),
+  period = list(g = periodogram_info(shesterkin_gbgs$gsax_ev), s = periodogram_info(shesterkin_gbgs$sv_pct_ev), x = periodogram_info(shesterkin_gbgs$team_xg_pct_ev)),
+  lead_ccf_sv = lead_ccf_info(shesterkin_gbgs$sv_pct_ev, shesterkin_gbgs$gsax_ev),
+  lead_ccf_x = lead_ccf_info(shesterkin_gbgs$team_xg_pct_ev, shesterkin_gbgs$gsax_ev)
+)
+blackwood_detrended <- list(
+  data = blackwood_detrended_gbgs,
+  means = c(g = mean(blackwood_detrended_gbgs$gsax_ev), s = mean(blackwood_detrended_gbgs$sv_pct_ev), x = mean(blackwood_detrended_gbgs$team_xg_pct_ev)),
+  period = list(g = periodogram_info(blackwood_detrended_gbgs$gsax_ev), s = periodogram_info(blackwood_detrended_gbgs$sv_pct_ev), x = periodogram_info(blackwood_detrended_gbgs$team_xg_pct_ev)),
+  lead_ccf_sv = lead_ccf_info(blackwood_detrended_gbgs$sv_pct_ev, blackwood_detrended_gbgs$gsax_ev),
+  lead_ccf_x = lead_ccf_info(blackwood_detrended_gbgs$team_xg_pct_ev, blackwood_detrended_gbgs$gsax_ev)
+)
+shesterkin_detrended <- list(
+  data = shesterkin_detrended_gbgs,
+  means = c(g = mean(shesterkin_detrended_gbgs$gsax_ev), s = mean(shesterkin_detrended_gbgs$sv_pct_ev), x = mean(shesterkin_detrended_gbgs$team_xg_pct_ev)),
+  period = list(g = periodogram_info(shesterkin_detrended_gbgs$gsax_ev), s = periodogram_info(shesterkin_detrended_gbgs$sv_pct_ev), x = periodogram_info(shesterkin_detrended_gbgs$team_xg_pct_ev)),
+  lead_ccf_sv = lead_ccf_info(shesterkin_detrended_gbgs$sv_pct_ev, shesterkin_detrended_gbgs$gsax_ev),
+  lead_ccf_x = lead_ccf_info(shesterkin_detrended_gbgs$team_xg_pct_ev, shesterkin_detrended_gbgs$gsax_ev)
+)
+
+project_adf_table <- rbind(
+  adf_row(blackwood_gbgs$gsax_ev, 'Blackwood', '$G_t$'),
+  adf_row(blackwood_gbgs$sv_pct_ev, 'Blackwood', '$S_t$'),
+  adf_row(blackwood_gbgs$team_xg_pct_ev, 'Blackwood', '$X_t$'),
+  adf_row(shesterkin_gbgs$gsax_ev, 'Shesterkin', '$G_t$'),
+  adf_row(shesterkin_gbgs$sv_pct_ev, 'Shesterkin', '$S_t$'),
+  adf_row(shesterkin_gbgs$team_xg_pct_ev, 'Shesterkin', '$X_t$')
+)
+
+blackwood_sv_lead_summary <- lead_ccf_summary(blackwood_detrended$lead_ccf_sv)
+blackwood_x_lead_summary <- lead_ccf_summary(blackwood_detrended$lead_ccf_x)
+shesterkin_sv_lead_summary <- lead_ccf_summary(shesterkin_detrended$lead_ccf_sv)
+shesterkin_x_lead_summary <- lead_ccf_summary(shesterkin_detrended$lead_ccf_x)
+
+blackwood_raw_reg <- build_ts_regression(blackwood_detrended_gbgs, sv_lead = 4, x_lead = 8)
+shesterkin_raw_reg <- build_ts_regression(shesterkin_detrended_gbgs, sv_lead = 2, x_lead = 4)
+
+blackwood_g_shift <- abs(min(blackwood_raw_reg$data$g)) + 1
+blackwood_g_lambda <- forecast::BoxCox.lambda(blackwood_raw_reg$data$g + blackwood_g_shift)
+blackwood_trans_data <- blackwood_raw_reg$data
+blackwood_trans_data$g_raw <- blackwood_trans_data$g
+blackwood_trans_data$g <- forecast::BoxCox(blackwood_trans_data$g_raw + blackwood_g_shift, lambda = blackwood_g_lambda)
+blackwood_reg <- list(
+  data = blackwood_trans_data,
+  fit = stats::lm(g ~ sv + xgf, data = blackwood_trans_data),
+  sv_lead = 4,
+  x_lead = 8,
+  response_shift = blackwood_g_shift,
+  response_lambda = blackwood_g_lambda
+)
+
+shesterkin_g_shift <- abs(min(shesterkin_raw_reg$data$g)) + 1
+shesterkin_g_lambda <- forecast::BoxCox.lambda(shesterkin_raw_reg$data$g + shesterkin_g_shift)
+shesterkin_trans_data <- shesterkin_raw_reg$data
+shesterkin_trans_data$g_raw <- shesterkin_trans_data$g
+shesterkin_trans_data$g <- forecast::BoxCox(shesterkin_trans_data$g_raw + shesterkin_g_shift, lambda = shesterkin_g_lambda)
+shesterkin_reg <- list(
+  data = shesterkin_trans_data,
+  fit = stats::lm(g ~ sv + xgf, data = shesterkin_trans_data),
+  sv_lead = 2,
+  x_lead = 4,
+  response_shift = shesterkin_g_shift,
+  response_lambda = shesterkin_g_lambda
+)
+
+blackwood_fit_table <- fit_table(blackwood_reg$fit)
+shesterkin_fit_table <- fit_table(shesterkin_reg$fit)
+blackwood_coef_table <- coef_table_lm(blackwood_reg$fit, c('Intercept', '$\\tilde{S}_{t-4}$', '$\\tilde{X}_{t-8}$'))
+shesterkin_coef_table <- coef_table_lm(shesterkin_reg$fit, c('Intercept', '$\\tilde{S}_{t-2}$', '$\\tilde{X}_{t-4}$'))
+
+blackwood_diag_table <- rbind(
+  split_variance_table(blackwood_raw_reg$data$g, '$\\tilde{G}_t$'),
+  split_variance_table(blackwood_raw_reg$data$sv, '$\\tilde{S}_{t-4}$'),
+  split_variance_table(blackwood_raw_reg$data$xgf, '$\\tilde{X}_{t-8}$')
+)
+shesterkin_diag_table <- rbind(
+  split_variance_table(shesterkin_raw_reg$data$g, '$\\tilde{G}_t$'),
+  split_variance_table(shesterkin_raw_reg$data$sv, '$\\tilde{S}_{t-2}$'),
+  split_variance_table(shesterkin_raw_reg$data$xgf, '$\\tilde{X}_{t-4}$')
+)
+blackwood_transform_table <- rbind(
+  transform_review(blackwood_raw_reg$data$g, '$\\tilde{G}_t$'),
+  transform_review(blackwood_raw_reg$data$sv, '$\\tilde{S}_{t-4}$'),
+  transform_review(blackwood_raw_reg$data$xgf, '$\\tilde{X}_{t-8}$')
+)
+shesterkin_transform_table <- rbind(
+  transform_review(shesterkin_raw_reg$data$g, '$\\tilde{G}_t$'),
+  transform_review(shesterkin_raw_reg$data$sv, '$\\tilde{S}_{t-2}$'),
+  transform_review(shesterkin_raw_reg$data$xgf, '$\\tilde{X}_{t-4}$')
+)
+
+blackwood_reg_compare_table <- rbind(
+  fit_compare_row(blackwood_raw_reg$fit, 'Detrended response'),
+  fit_compare_row(blackwood_reg$fit, 'Shifted Box-Cox detrended response')
+)
+shesterkin_reg_compare_table <- rbind(
+  fit_compare_row(shesterkin_raw_reg$fit, 'Detrended response'),
+  fit_compare_row(shesterkin_reg$fit, 'Shifted Box-Cox detrended response')
+)
+
+arma_orders <- data.frame(p = c(0, 1, 0, 1, 2, 0, 2, 1), d = 0, q = c(0, 0, 1, 1, 0, 2, 1, 2))
+arima_orders <- data.frame(p = arma_orders$p, d = 1, q = arma_orders$q)
+blackwood_resid <- stats::residuals(blackwood_reg$fit)
+shesterkin_resid <- stats::residuals(shesterkin_reg$fit)
+blackwood_arma <- arima_candidate_table(blackwood_resid, arma_orders)
+shesterkin_arma <- arima_candidate_table(shesterkin_resid, arma_orders)
+blackwood_arima <- arima_candidate_table(blackwood_resid, arima_orders)
+shesterkin_arima <- arima_candidate_table(shesterkin_resid, arima_orders)
+
+auto_response_xreg_table <- rbind(
+  auto_xreg_row(
+    blackwood_raw_reg$data$g,
+    blackwood_raw_reg$data[, c('sv', 'xgf')],
+    'Blackwood',
+    '$\\tilde{G}_t$',
+    '$\\tilde{S}_{t-4}, \\tilde{X}_{t-8}$'
+  ),
+  auto_xreg_row(
+    shesterkin_raw_reg$data$g,
+    shesterkin_raw_reg$data[, c('sv', 'xgf')],
+    'Shesterkin',
+    '$\\tilde{G}_t$',
+    '$\\tilde{S}_{t-2}, \\tilde{X}_{t-4}$'
+  )
+)
+```
+
+# Disclosure
+
+GPT-5.4 (High) on Codex was used to create the `YAML` portion and some `LaTeX` code to format the text and equations. Page-formatting code was also provided by Derin Gezgin. In the setup, chunk options were set for the document, and helper functions were defined for repetitive plotting, table-formatting, CCF, regression, transformation, and ARMA/ARIMA fitting steps. See the original `RMD` file [here](https://github.com/RentoSaijo/STA209/blob/main/Homework7.Rmd) for more details.
+
+\newpage
+
+# Problem 1
+
+\begin{problem}[Problem 1]
+Answer the following questions for your data project.
+\end{problem}
+
+\newpage
+
+## Problem 1 (a)
+
+\begin{problem}[Problem 1 (a)]
+Briefly introduce the problem you are exploring and briefly state the variables you are using.
+\end{problem}
+
+My project studies whether a hockey goalie’s even-strength goals saved above expected, or GSAx, is really as team-independent as it is often interpreted to be. The comparison uses Mackenzie Blackwood and Igor Shesterkin because Blackwood’s team context changed substantially across New Jersey, San Jose, and Colorado, while Shesterkin remained with the New York Rangers in the matched sample. This makes the project a time-series comparison of one goalie with major team-context changes and one goalie with much more organizational continuity. I use the game-by-game even-strength variables
+\[
+\begin{aligned}
+G_t &= \text{game-by-game even-strength GSAx},\\
+S_t &= \text{game-by-game even-strength save percentage},\\
+X_t &= \text{team even-strength xGF\%}.
+\end{aligned}
+\]
+Here, \(G_t\) is measured in goals, \(S_t\) is recorded as a proportion, and \(X_t\) is measured in percentage points. The response variable is \(G_t\). The predictors are \(S_t\) and \(X_t\). The time variable \(t\) is the matched career game number. For each goalie, the frequency is one observation per completed regular-season game, so the series has frequency \(1\) in \R. The range is \(t = 1,2,\ldots,`r matched_n`\). For Blackwood, this covers `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)`, with `r sum(blackwood_gbgs$team_abbr == 'NJD')` games for New Jersey, `r sum(blackwood_gbgs$team_abbr == 'SJS')` games for San Jose, and `r sum(blackwood_gbgs$team_abbr == 'COL')` games for Colorado. For Shesterkin, this covers `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)`, and all `r matched_n` games are with the Rangers.
+
+\newpage
+
+## Problem 1 (b)
+
+\begin{problem}[Problem 1 (b)]
+Are the variables (time series) in your data stationary? Justify using the time-series plots and ADF tests.
+\end{problem}
+
+### Blackwood
+
+```{r p1-raw-plots-blackwood, fig.width=10, fig.height=8.5, out.width='\\linewidth'}
+with_family({
+  plot_raw_series(blackwood_gbgs, 'Blackwood', add_trade_lines = TRUE)
+})
+```
+
+- \(G_t\): This is Blackwood's game-by-game even-strength GSAx series, measured in goals, over `r matched_n` matched career games from `r min(blackwood_gbgs$game_date)` through `r max(blackwood_gbgs$game_date)`. The plot does not show a sustained linear or nonlinear trend. Instead, it oscillates around a roughly stable center near `r round(blackwood$means['g'], 4)` goals, with isolated positive and negative spikes. There is no repeated seasonal pattern in the game index. The variability looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity, although individual games can be extreme. There is no clear volatility clustering. The statistical range is `r round(min(blackwood_gbgs$gsax_ev), 4)` to `r round(max(blackwood_gbgs$gsax_ev), 4)`, so the total range is `r round(diff(range(blackwood_gbgs$gsax_ev)), 4)` goals.
+- \(S_t\): This is Blackwood's game-by-game even-strength save percentage series, measured as a proportion. The mean behavior appears approximately stable around `r round(blackwood$means['s'], 4)`, with no clear linear or nonlinear trend through the matched game index. There is no visible seasonal pattern. The series has a few sharp downward games, but these appear as isolated dips rather than a repeating cycle. The spread appears reasonably constant over time, so the variance looks approximately homoscedastic. There is no clear volatility clustering. The statistical range is `r round(min(blackwood_gbgs$sv_pct_ev), 4)` to `r round(max(blackwood_gbgs$sv_pct_ev), 4)`, so the total range is `r round(diff(range(blackwood_gbgs$sv_pct_ev)), 4)`.
+- \(X_t\): This is Blackwood's team game-by-game even-strength xGF\% series, measured in percentage points. The plot fluctuates around `r round(blackwood$means['x'], 2)` percent. Franchise changes create local level differences, but the overall movement is still irregular rather than a sustained deterministic trend. There is no visual seasonality. The variance looks approximately constant over time, although there are isolated team-context outliers. There is no clear volatility clustering. The statistical range is `r round(min(blackwood_gbgs$team_xg_pct_ev), 2)` to `r round(max(blackwood_gbgs$team_xg_pct_ev), 2)`, so the total range is `r round(diff(range(blackwood_gbgs$team_xg_pct_ev)), 2)` percentage points.
+
+Overall, the Blackwood series look approximately stationary from the time-series plots. The means appear stable enough for the game-by-game analysis, and the spreads do not show persistent fanning-in or fanning-out.
+
+### Shesterkin
+
+```{r p1-raw-plots-shesterkin, fig.width=10, fig.height=8.5, out.width='\\linewidth'}
+with_family({
+  plot_raw_series(shesterkin_gbgs, 'Shesterkin', add_trade_lines = FALSE)
+})
+```
+
+- \(G_t\): This is Shesterkin's game-by-game even-strength GSAx series, measured in goals, over `r matched_n` matched career games from `r min(shesterkin_gbgs$game_date)` through `r max(shesterkin_gbgs$game_date)`. The plot fluctuates around a stable positive center near `r round(shesterkin$means['g'], 4)` goals and does not show a visible linear or nonlinear trend. There is no visible seasonal cycle. The spikes are irregular rather than repeating. The spread appears fairly stable over time, so the variance looks approximately homoscedastic, although the later part has somewhat wider individual games. There is no clear volatility clustering. The statistical range is `r round(min(shesterkin_gbgs$gsax_ev), 4)` to `r round(max(shesterkin_gbgs$gsax_ev), 4)`, so the total range is `r round(diff(range(shesterkin_gbgs$gsax_ev)), 4)` goals.
+- \(S_t\): This is Shesterkin's game-by-game even-strength save percentage series, measured as a proportion. The series fluctuates around `r round(shesterkin$means['s'], 4)`, with occasional large downward games, but it does not show a systematic linear or nonlinear trend. There is no clear repeated seasonal pattern. The variance is fairly stable, with a few isolated low-save-percentage games rather than a persistent fanning pattern. There is no clear volatility clustering. The statistical range is `r round(min(shesterkin_gbgs$sv_pct_ev), 4)` to `r round(max(shesterkin_gbgs$sv_pct_ev), 4)`, so the total range is `r round(diff(range(shesterkin_gbgs$sv_pct_ev)), 4)`.
+- \(X_t\): This is Shesterkin's team game-by-game even-strength xGF\% series, measured in percentage points. The plot oscillates around `r round(shesterkin$means['x'], 2)` percent, and the movement appears irregular rather than trending. There is no visible seasonal pattern. The spread looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity or volatility clustering. The statistical range is `r round(min(shesterkin_gbgs$team_xg_pct_ev), 2)` to `r round(max(shesterkin_gbgs$team_xg_pct_ev), 2)`, so the total range is `r round(diff(range(shesterkin_gbgs$team_xg_pct_ev)), 2)` percentage points.
+
+Overall, the Shesterkin series also appear approximately stationary from the time-series plots. The means look stable, and the variances are reasonably constant. For a formal check, I use the Augmented Dickey-Fuller test. The null hypothesis is
+\[
+H_0: \text{the series is non-stationary},
+\]
+and the alternative is
+\[
+H_a: \text{the series is stationary}.
+\]
+
+```{r p1-adf-code}
+tseries::adf.test(blackwood_gbgs$gsax_ev)
+tseries::adf.test(blackwood_gbgs$sv_pct_ev)
+tseries::adf.test(blackwood_gbgs$team_xg_pct_ev)
+tseries::adf.test(shesterkin_gbgs$gsax_ev)
+tseries::adf.test(shesterkin_gbgs$sv_pct_ev)
+tseries::adf.test(shesterkin_gbgs$team_xg_pct_ev)
+```
+
+```{r p1-adf-table, echo=FALSE, results='asis'}
+table_latex(
+  project_adf_table,
+  digits = 4,
+  caption = 'ADF test results for the project time series',
+  size = '\\scriptsize',
+  col_names = c('Goalie', 'Series', 'DF', 'Lag', 'P-value', 'Decision')
+)
+```
+
+All six ADF tests reject \(H_0\) at the 5\% level. Therefore, the ADF results support the visual conclusion that the response and predictor series are stationary enough for the constant-level trend model and the later time-series regression step.
+
+\newpage
+
+## Problem 1 (c)
+
+\begin{problem}[Problem 1 (c)]
+If there is any trend in your data, model the average overall trend using techniques learned in class.
+\end{problem}
+
+Since the raw game-by-game response and predictors appear stationary, I do not fit nonconstant polynomial trend models for these six series (i.e., for trend modeling, the appropriate conclusion is that the nonconstant trend terms are unnecessary). A descriptive constant-level model is
+\[
+Y_t = \mu_Y + W_t,
+\]
+where \(Y_t\) is one of \(G_t\), \(S_t\), or \(X_t\), and \(W_t\) is the remaining noise. For Blackwood, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= `r format(round(blackwood$means['g'], 6), nsmall = 6)` + W_t,\\
+S_t &= `r format(round(blackwood$means['s'], 6), nsmall = 6)` + W_t,\\
+X_t &= `r format(round(blackwood$means['x'], 6), nsmall = 6)` + W_t.
+\end{aligned}
+\]
+For Shesterkin, the fitted mean models are
+\[
+\begin{aligned}
+G_t &= `r format(round(shesterkin$means['g'], 6), nsmall = 6)` + W_t,\\
+S_t &= `r format(round(shesterkin$means['s'], 6), nsmall = 6)` + W_t,\\
+X_t &= `r format(round(shesterkin$means['x'], 6), nsmall = 6)` + W_t.
+\end{aligned}
+\]
+In these equations, \(t\) is the career-game index \(1,\ldots,`r matched_n`\).
+For the remaining modeling steps, I remove these fitted average levels and work with the detrended variables
+\[
+\tilde{G}_t = G_t - \hat{\mu}_G,\qquad
+\tilde{S}_t = S_t - \hat{\mu}_S,\qquad
+\tilde{X}_t = X_t - \hat{\mu}_X.
+\]
+These are still measured in the same units as the original series: \(\tilde{G}_t\) is in goals, \(\tilde{S}_t\) is in save-percentage proportion units, and \(\tilde{X}_t\) is in percentage points. The only change is that each series is now measured as a deviation from its fitted average level.
+
+\newpage
+
+## Problem 1 (d)
+
+\begin{problem}[Problem 1 (d)]
+Is there any seasonality? Determine using the periodogram and state what is the periodicity.
+\end{problem}
+
+```{r p1-periodogram-blackwood, fig.width=10, fig.height=4.2, out.width='\\linewidth'}
+with_family({
+  plot_periodograms(blackwood_detrended, 'Blackwood Detrended')
+})
+```
+
+```{r p1-periodogram-shesterkin, fig.width=10, fig.height=4.2, out.width='\\linewidth'}
+with_family({
+  plot_periodograms(shesterkin_detrended, 'Shesterkin Detrended')
+})
+```
+
+For Blackwood, the largest periodogram peaks imply periods of about `r round(blackwood_detrended$period$g$period, 2)` games for \(\tilde{G}_t\), `r round(blackwood_detrended$period$s$period, 2)` games for \(\tilde{S}_t\), and `r round(blackwood_detrended$period$x$period, 2)` games for \(\tilde{X}_t\). For Shesterkin, they imply periods of about `r round(shesterkin_detrended$period$g$period, 2)` games for \(\tilde{G}_t\), `r round(shesterkin_detrended$period$s$period, 2)` games for \(\tilde{S}_t\), and `r round(shesterkin_detrended$period$x$period, 2)` games for \(\tilde{X}_t\). These are not clear, stable, isolated seasonal periodicities. They are simply the largest sample periodogram peaks in noisy game-by-game data. Because \(t\) is a one-game-at-a-time career index, there is also no natural fixed calendar seasonality built into the time index. Therefore, I conclude that there is no meaningful seasonal pattern to model.
+
+\newpage
+
+## Problem 1 (e)
+
+\begin{problem}[Problem 1 (e)]
+If there is seasonal pattern then model the overall behavior (trend and seasonality both) using the techniques learned in class.
+\end{problem}
+
+There is no meaningful seasonal pattern in part (d), and there is no nonconstant trend from part (c). Therefore, I do not fit a combined trend-and-seasonality model. Including harmonic terms or seasonal indicators would add parameters without a clear periodicity to justify them.
+
+\newpage
+
+## Problem 1 (f)
+
+\begin{problem}[Problem 1 (f)]
+Use CCF between the response time series in your study and the predictors to see what if any lead-lag relation exists between the variables. State very clearly.
+\end{problem}
+
+The CCF step uses the detrended response \(\tilde{G}_t\) and the two detrended predictors \(\tilde{S}_t\) and \(\tilde{X}_t\). I use `ccf(predictor, response)`. In this convention, negative lags mean the predictor leads the response, so I rewrite those as positive predictor leads in games.
+
+```{r p1-ccf-blackwood, fig.width=10, fig.height=7.5, out.width='\\linewidth'}
+with_family({
+  plot_goalie_ccf(blackwood_detrended, 'Blackwood')
+})
+```
+
+For Blackwood, the largest save-percentage lead CCF magnitude over leads 1 through 9 is `r round(abs(blackwood_sv_lead_summary$CCF), 4)` at lead `r blackwood_sv_lead_summary$Lead`, and the largest team-xGF\% lead CCF magnitude is `r round(abs(blackwood_x_lead_summary$CCF), 4)` at lead `r blackwood_x_lead_summary$Lead`. The signs are `r if (blackwood_sv_lead_summary$CCF >= 0) 'positive' else 'negative'` for save percentage and `r if (blackwood_x_lead_summary$CCF >= 0) 'positive' else 'negative'` for team xGF\%. These are weak lead-lag correlations, but they support carrying \(\tilde{S}_{t-4}\) and \(\tilde{X}_{t-8}\) into the time-series regression.
+
+```{r p1-ccf-shesterkin, fig.width=10, fig.height=7.5, out.width='\\linewidth'}
+with_family({
+  plot_goalie_ccf(shesterkin_detrended, 'Shesterkin')
+})
+```
+
+For Shesterkin, the largest save-percentage lead CCF magnitude is `r round(abs(shesterkin_sv_lead_summary$CCF), 4)` at lead `r shesterkin_sv_lead_summary$Lead`, and the largest team-xGF\% lead CCF magnitude is `r round(abs(shesterkin_x_lead_summary$CCF), 4)` at lead `r shesterkin_x_lead_summary$Lead`. The save-percentage lead relation is more visible for Shesterkin than for Blackwood, while the team-xGF\% lead relation remains weak. I therefore carry \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) into the Shesterkin regression.
+
+\newpage
+
+## Problem 1 (g)
+
+\begin{problem}[Problem 1 (g)]
+Use time series scatterplots to show over time relation between response and predictors. Clearly state the findings.
+\end{problem}
+
+```{r p1-scatter-blackwood-sv, fig.width=10, fig.height=8, out.width='\\linewidth'}
+with_family({
+  plot_lagged_scatter_grid(blackwood_detrended, 'Blackwood', predictor = 'sv', leads = 1:9)
+})
+```
+
+```{r p1-scatter-blackwood-xgf, fig.width=10, fig.height=8, out.width='\\linewidth'}
+with_family({
+  plot_lagged_scatter_grid(blackwood_detrended, 'Blackwood', predictor = 'xgf', leads = 1:9)
+})
+```
+
+The Blackwood detrended scatterplots are diffuse at almost every lead. The selected leads should therefore be interpreted as the strongest available lead-lag candidates, not as evidence of a strong deterministic relationship. This is important for the final interpretation: if the regression is weak, that is a real result rather than a failure to find a more complicated lead.
+
+```{r p1-scatter-shesterkin-sv, fig.width=10, fig.height=8, out.width='\\linewidth'}
+with_family({
+  plot_lagged_scatter_grid(shesterkin_detrended, 'Shesterkin', predictor = 'sv', leads = 1:9)
+})
+```
+
+```{r p1-scatter-shesterkin-xgf, fig.width=10, fig.height=8, out.width='\\linewidth'}
+with_family({
+  plot_lagged_scatter_grid(shesterkin_detrended, 'Shesterkin', predictor = 'xgf', leads = 1:9)
+})
+```
+
+The Shesterkin detrended save-percentage scatterplots show the clearest relationship around the shorter leads, especially the two-game lead. The team-xGF\% plots remain much more scattered, so any team-context effect is weak in this direct lagged-regression setup.
+
+\newpage
+
+## Problem 1 (h)
+
+\begin{problem}[Problem 1 (h)]
+If any transformations are needed for your data, please report that.
+\end{problem}
+
+I check the aligned detrended response and detrended predictors that enter the regression models. The goal is to decide whether the modeling variables need a variance-stabilizing transformation before fitting the final time-series regression.
+
+```{r p1-transformation-plots, fig.width=10, fig.height=7.5, out.width='\\linewidth'}
+with_family({
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(3, 2), mar = c(4.0, 4.4, 2.6, 1.0), mgp = c(2.2, 0.7, 0), cex.main = 0.92)
+  astsa::tsplot(stats::ts(blackwood_raw_reg$data$g, start = min(blackwood_raw_reg$data$t), frequency = 1), main = 'Blackwood: Aligned Detrended GSAx Response', xlab = 'Career Game Number (t)', ylab = 'Detrended GSAx (Goals)', col = 'darkgreen', lwd = 2)
+  astsa::tsplot(stats::ts(shesterkin_raw_reg$data$g, start = min(shesterkin_raw_reg$data$t), frequency = 1), main = 'Shesterkin: Aligned Detrended GSAx Response', xlab = 'Career Game Number (t)', ylab = 'Detrended GSAx (Goals)', col = 'darkgreen', lwd = 2)
+  astsa::tsplot(stats::ts(blackwood_raw_reg$data$sv, start = min(blackwood_raw_reg$data$t), frequency = 1), main = 'Blackwood: Lagged Detrended Save Percentage', xlab = 'Career Game Number (t)', ylab = 'S~(t-4)', col = 'firebrick', lwd = 2)
+  astsa::tsplot(stats::ts(shesterkin_raw_reg$data$sv, start = min(shesterkin_raw_reg$data$t), frequency = 1), main = 'Shesterkin: Lagged Detrended Save Percentage', xlab = 'Career Game Number (t)', ylab = 'S~(t-2)', col = 'firebrick', lwd = 2)
+  astsa::tsplot(stats::ts(blackwood_raw_reg$data$xgf, start = min(blackwood_raw_reg$data$t), frequency = 1), main = 'Blackwood: Lagged Detrended Team xGF%', xlab = 'Career Game Number (t)', ylab = 'X~(t-8)', col = 'navy', lwd = 2)
+  astsa::tsplot(stats::ts(shesterkin_raw_reg$data$xgf, start = min(shesterkin_raw_reg$data$t), frequency = 1), main = 'Shesterkin: Lagged Detrended Team xGF%', xlab = 'Career Game Number (t)', ylab = 'X~(t-4)', col = 'navy', lwd = 2)
+})
+```
+
+```{r p1-blackwood-diag-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_diag_table,
+  digits = 4,
+  caption = 'Blackwood aligned variable diagnostics',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Mean', 'Min', 'Max', '1st-Half Var.', '2nd-Half Var.', '2nd/1st')
+)
+```
+
+```{r p1-blackwood-transform-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_transform_table,
+  digits = 4,
+  caption = 'Blackwood shifted log and Box-Cox comparison',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Shift', '$\\hat{\\lambda}$', 'Raw', 'Shifted Log', 'Shifted Box-Cox')
+)
+```
+
+For Blackwood, the detrended response variance ratio is `r round(blackwood_diag_table$Ratio_Second_to_First[1], 4)`. The shifted Box-Cox response transformation improves this to `r round(blackwood_transform_table$Shifted_BoxCox_Ratio[1], 4)`, while the shifted log makes it worse at `r round(blackwood_transform_table$Shifted_Log_Ratio[1], 4)`. For the predictors, the ratios are `r round(blackwood_diag_table$Ratio_Second_to_First[2], 4)` for \(\tilde{S}_{t-4}\) and `r round(blackwood_diag_table$Ratio_Second_to_First[3], 4)` for \(\tilde{X}_{t-8}\). The Box-Cox transformation does move \(\tilde{S}_{t-4}\) from `r round(blackwood_transform_table$Raw_Ratio[2], 4)` to `r round(blackwood_transform_table$Shifted_BoxCox_Ratio[2], 4)`, so it improves the raw ratio in the numerical sense. However, the transformed ratio is still not especially close to 1, while the transformed response ratio is very close to 1. Transforming \(\tilde{S}_{t-4}\) would also make the predictor harder to interpret because it would no longer mean a save-percentage deviation from the goalie's average. Since the improvement for \(\tilde{S}_{t-4}\) is incomplete and has an interpretability cost, I keep the predictors in detrended but untransformed units. Therefore, I transform only Blackwood's detrended response:
+\[
+Y^{(B)}_t
+= \frac{\left(\tilde{G}_t + `r round(blackwood_g_shift, 4)`\right)^{`r round(blackwood_g_lambda, 4)`} - 1}{`r round(blackwood_g_lambda, 4)`}.
+\]
+This transformed response is on the shifted Box-Cox detrended-GSAx scale, while \(\tilde{S}_{t-4}\) remains in proportion-deviation units and \(\tilde{X}_{t-8}\) remains in percentage-point-deviation units.
+
+```{r p1-shesterkin-diag-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_diag_table,
+  digits = 4,
+  caption = 'Shesterkin aligned variable diagnostics',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Mean', 'Min', 'Max', '1st-Half Var.', '2nd-Half Var.', '2nd/1st')
+)
+```
+
+```{r p1-shesterkin-transform-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_transform_table,
+  digits = 4,
+  caption = 'Shesterkin shifted log and Box-Cox comparison',
+  size = '\\scriptsize',
+  col_names = c('Series', 'Shift', '$\\hat{\\lambda}$', 'Raw', 'Shifted Log', 'Shifted Box-Cox')
+)
+```
+
+For Shesterkin, the detrended response variance ratio is `r round(shesterkin_diag_table$Ratio_Second_to_First[1], 4)`. The shifted Box-Cox response transformation improves this to `r round(shesterkin_transform_table$Shifted_BoxCox_Ratio[1], 4)`, while the shifted log makes it worse at `r round(shesterkin_transform_table$Shifted_Log_Ratio[1], 4)`. For the predictors, the raw ratios are already milder: `r round(shesterkin_diag_table$Ratio_Second_to_First[2], 4)` for \(\tilde{S}_{t-2}\) and `r round(shesterkin_diag_table$Ratio_Second_to_First[3], 4)` for \(\tilde{X}_{t-4}\). Therefore, I transform only Shesterkin's detrended response:
+\[
+Y^{(S)}_t
+= \frac{\left(\tilde{G}_t + `r round(shesterkin_g_shift, 4)`\right)^{`r round(shesterkin_g_lambda, 4)`} - 1}{`r round(shesterkin_g_lambda, 4)`}.
+\]
+This transformed response is on the shifted Box-Cox detrended-GSAx scale, while \(\tilde{S}_{t-2}\) remains in proportion-deviation units and \(\tilde{X}_{t-4}\) remains in percentage-point-deviation units.
+
+\newpage
+
+## Problem 1 (i)
+
+\begin{problem}[Problem 1 (i)]
+Fit a time series regression model for your response variable using the predictors.
+\end{problem}
+
+The final time-series regression models use only the detrended lagged predictors from the CCF step:
+\[
+\text{Response}_t = \beta_0 + \beta_1 \tilde{S}_{t-h_S} + \beta_2 \tilde{X}_{t-h_X} + W_t.
+\]
+For both goalies, the response is the shifted Box-Cox transformed version of \(\tilde{G}_t\) from part (h), while the predictors stay detrended but untransformed. For Blackwood, the model is
+\[
+Y^{(B)}_t = \beta_0 + \beta_1 \tilde{S}_{t-4} + \beta_2 \tilde{X}_{t-8} + W_t.
+\]
+The fitted model is
+\[
+`r equation_from_fit(blackwood_reg$fit, '\\widehat{Y}^{(B)}_t', c('sv' = '\\tilde{S}_{t-4}', 'xgf' = '\\tilde{X}_{t-8}'))`.
+\]
+Here, \(Y^{(B)}_t\) is Blackwood's shifted Box-Cox transformed detrended game-by-game even-strength GSAx at career game \(t\), \(\tilde{S}_{t-4}\) is Blackwood's even-strength save percentage four games earlier after subtracting Blackwood's average save percentage, and \(\tilde{X}_{t-8}\) is Blackwood's team even-strength xGF\% eight games earlier after subtracting Blackwood's average team xGF\%. Because the largest lag is 8, the aligned regression sample uses \(t = 9,\ldots,`r matched_n`\), so it contains \(n=`r nrow(blackwood_reg$data)`\) observations.
+
+To write this on the original GSAx scale, I reverse the shifted Box-Cox transformation and add back the fitted average level from part (c). Since
+\[
+Y^{(B)}_t
+= \frac{\left(\tilde{G}_t + `r round(blackwood_g_shift, 4)`\right)^{`r round(blackwood_g_lambda, 4)`} - 1}{`r round(blackwood_g_lambda, 4)`},
+\]
+the fitted model on the original GSAx scale is
+\[
+\widehat{G}_t
+=
+\left[
+`r round(blackwood_g_lambda, 4)`
+\left(`r linear_part_from_fit(blackwood_reg$fit, c('sv' = '\\tilde{S}_{t-4}', 'xgf' = '\\tilde{X}_{t-8}'))`\right)
++ 1
+\right]^{1/`r round(blackwood_g_lambda, 4)`}
+- `r round(blackwood_g_shift, 4)`
+`r signed_term(blackwood$means['g'], 4)`.
+\]
+This reversed equation is the interpretable fitted-value equation for \(G_t\), measured in goals. The final `r signed_term(blackwood$means['g'], 4)` term applies Blackwood's fitted average GSAx level from part (c).
+
+```{r p1-blackwood-reg}
+blackwood_reg$fit
+summary(blackwood_reg$fit)
+```
+
+```{r p1-blackwood-reg-comparison, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_reg_compare_table,
+  digits = 4,
+  caption = 'Blackwood detrended-response and transformed-detrended-response regression comparison',
+  size = '\\scriptsize',
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC'),
+  resize = TRUE
+)
+```
+
+```{r p1-blackwood-reg-coef, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_coef_table,
+  digits = 6,
+  caption = 'Blackwood time-series regression coefficients',
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate', 'Std. Error', 't Value', 'P-value')
+)
+```
+
+```{r p1-blackwood-reg-fit, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_fit_table,
+  digits = 4,
+  caption = 'Blackwood time-series regression fit criteria',
+  size = '\\scriptsize',
+  col_names = c('\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+```
+
+For Blackwood, a 0.01 increase in \(\tilde{S}_{t-4}\), meaning save percentage 0.01 above its fitted average level four games earlier, is associated with a change of `r round(0.01 * stats::coef(blackwood_reg$fit)['sv'], 4)` shifted Box-Cox units in current \(Y^{(B)}_t\), holding \(\tilde{X}_{t-8}\) fixed. A one-percentage-point increase in \(\tilde{X}_{t-8}\), meaning team xGF\% one percentage point above its fitted average level eight games earlier, is associated with a change of `r round(stats::coef(blackwood_reg$fit)['xgf'], 4)` shifted Box-Cox units in current \(Y^{(B)}_t\), holding \(\tilde{S}_{t-4}\) fixed. The coefficient table gives the separate \(t\)-tests for the intercept, \(\tilde{S}_{t-4}\), and \(\tilde{X}_{t-8}\); for the two predictors, these p-values test whether that lagged detrended predictor contributes to current transformed detrended GSAx after the other lagged detrended predictor is already in the model. The adjusted \(R^2\) is `r round(summary(blackwood_reg$fit)$adj.r.squared, 4)`, so after accounting for the number of predictors, the model explains essentially none of the game-to-game variation in Blackwood's transformed detrended GSAx. The residual standard error is `r round(summary(blackwood_reg$fit)$sigma, 4)` transformed-response units, meaning a typical fitted residual is about `r round(summary(blackwood_reg$fit)$sigma, 4)` units on the shifted Box-Cox scale. The overall F-test p-value is `r blackwood_fit_table$Fp`; this tests \(H_0:\beta_1=\beta_2=0\), so it asks whether the lagged detrended save percentage and lagged detrended team xGF\% variables jointly improve the model over an intercept-only model. Since this p-value is larger than 0.05, I do not have strong evidence that the two lagged detrended predictors jointly explain Blackwood's current transformed detrended GSAx. This is a weak model, but that weakness is informative: the selected lagged predictors do not explain much of Blackwood's next-game transformed detrended GSAx variation.
+
+For Shesterkin, the model is
+\[
+Y^{(S)}_t = \beta_0 + \beta_1 \tilde{S}_{t-2} + \beta_2 \tilde{X}_{t-4} + W_t.
+\]
+The fitted model is
+\[
+`r equation_from_fit(shesterkin_reg$fit, '\\widehat{Y}^{(S)}_t', c('sv' = '\\tilde{S}_{t-2}', 'xgf' = '\\tilde{X}_{t-4}'))`.
+\]
+Here, \(Y^{(S)}_t\) is Shesterkin's shifted Box-Cox transformed detrended game-by-game even-strength GSAx at career game \(t\), \(\tilde{S}_{t-2}\) is Shesterkin's even-strength save percentage two games earlier after subtracting Shesterkin's average save percentage, and \(\tilde{X}_{t-4}\) is the Rangers' even-strength xGF\% four games earlier after subtracting Shesterkin's average team xGF\%. Because the largest lag is 4, the aligned regression sample uses \(t = 5,\ldots,`r matched_n`\), so it contains \(n=`r nrow(shesterkin_reg$data)`\) observations. To write this on the original GSAx scale, I reverse the shifted Box-Cox transformation and add back the fitted average level from part (c). Since
+\[
+Y^{(S)}_t
+= \frac{\left(\tilde{G}_t + `r round(shesterkin_g_shift, 4)`\right)^{`r round(shesterkin_g_lambda, 4)`} - 1}{`r round(shesterkin_g_lambda, 4)`},
+\]
+the fitted model on the original GSAx scale is
+\[
+\widehat{G}_t
+=
+\left[
+`r round(shesterkin_g_lambda, 4)`
+\left(`r linear_part_from_fit(shesterkin_reg$fit, c('sv' = '\\tilde{S}_{t-2}', 'xgf' = '\\tilde{X}_{t-4}'))`\right)
++ 1
+\right]^{1/`r round(shesterkin_g_lambda, 4)`}
+- `r round(shesterkin_g_shift, 4)`
+`r signed_term(shesterkin$means['g'], 4)`.
+\]
+This reversed equation is the interpretable fitted-value equation for \(G_t\), measured in goals. The final `r signed_term(shesterkin$means['g'], 4)` term applies Shesterkin's fitted average GSAx level from part (c). The effects of \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) are no longer additive constants in goals after reversing the transformation; they act through the nonlinear inverse Box-Cox expression.
+
+```{r p1-shesterkin-reg-comparison, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_reg_compare_table,
+  digits = 4,
+  caption = 'Shesterkin detrended-response and transformed-detrended-response regression comparison',
+  size = '\\scriptsize',
+  col_names = c('Model', '\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC'),
+  resize = TRUE
+)
+```
+
+```{r p1-shesterkin-reg}
+shesterkin_reg$fit
+summary(shesterkin_reg$fit)
+```
+
+```{r p1-shesterkin-reg-coef, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_coef_table,
+  digits = 6,
+  caption = 'Shesterkin time-series regression coefficients',
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate', 'Std. Error', 't Value', 'P-value')
+)
+```
+
+```{r p1-shesterkin-reg-fit, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_fit_table,
+  digits = 4,
+  caption = 'Shesterkin time-series regression fit criteria',
+  size = '\\scriptsize',
+  col_names = c('\\# Parameters', '$R_a^2$', '$p_F$', 'AIC', 'AICc', 'BIC')
+)
+```
+
+For Shesterkin, a 0.01 increase in \(\tilde{S}_{t-2}\), meaning save percentage 0.01 above its fitted average level two games earlier, is associated with a change of `r round(0.01 * stats::coef(shesterkin_reg$fit)['sv'], 4)` shifted Box-Cox units in current \(Y^{(S)}_t\), holding \(\tilde{X}_{t-4}\) fixed. A one-percentage-point increase in \(\tilde{X}_{t-4}\), meaning team xGF\% one percentage point above its fitted average level four games earlier, is associated with a change of `r round(stats::coef(shesterkin_reg$fit)['xgf'], 4)` shifted Box-Cox units in current \(Y^{(S)}_t\), holding \(\tilde{S}_{t-2}\) fixed. The coefficient table gives the separate \(t\)-tests for the intercept, \(\tilde{S}_{t-2}\), and \(\tilde{X}_{t-4}\); for the two predictors, these p-values test whether that lagged detrended predictor contributes to current transformed detrended GSAx after the other lagged detrended predictor is already in the model. The adjusted \(R^2\) is `r round(summary(shesterkin_reg$fit)$adj.r.squared, 4)`, so after accounting for the number of predictors, the model explains only a small amount of the game-to-game variation in Shesterkin's transformed detrended GSAx. The residual standard error is `r round(summary(shesterkin_reg$fit)$sigma, 4)` transformed-response units, meaning a typical fitted residual is about `r round(summary(shesterkin_reg$fit)$sigma, 4)` units on the shifted Box-Cox scale. The overall F-test p-value is `r shesterkin_fit_table$Fp`; this tests \(H_0:\beta_1=\beta_2=0\), so it asks whether the lagged detrended save percentage and lagged detrended team xGF\% variables jointly improve the model over an intercept-only model. Since this p-value is below 0.05, I reject that joint null hypothesis and conclude that the two lagged detrended predictors jointly improve the model statistically. However, the adjusted \(R^2\) is still small, so the statistically significant result does not mean that the model explains a large share of Shesterkin's game-to-game transformed detrended GSAx variation.
+
+\newpage
+
+# Problem 2
+
+\begin{problem}[Problem 2]
+Answer the following questions about your data project.
+\end{problem}
+
+\newpage
+
+## Problem 2 (a)
+
+\begin{problem}[Problem 2 (a)]
+Plot the residuals from your TS regression and comment on any interesting features.
+\end{problem}
+
+The residuals come from the time-series regression models in Problem 1:
+\[
+Y^{(B)}_t = \beta_0 + \beta_1 \tilde{S}_{t-4} + \beta_2 \tilde{X}_{t-8} + W_t
+\]
+for Blackwood and
+\[
+Y^{(S)}_t = \beta_0 + \beta_1 \tilde{S}_{t-2} + \beta_2 \tilde{X}_{t-4} + W_t
+\]
+for Shesterkin. Both residual series are measured on shifted Box-Cox detrended-GSAx response scales.
+
+```{r p2-residual-plots, fig.width=10, fig.height=6.5, out.width='\\linewidth'}
+with_family({
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(2, 1), mar = c(4.2, 4.8, 3.0, 1.2), mgp = c(2.2, 0.7, 0), cex.main = 1.05)
+  astsa::tsplot(stats::ts(blackwood_resid, start = min(blackwood_reg$data$t), frequency = 1), main = 'Blackwood: Residuals from TS Regression', xlab = 'Career Game Number (t)', ylab = 'Residuals (Transformed Scale)', col = 'black', lwd = 2)
+  graphics::abline(h = 0, lty = 2, col = 'gray40')
+  astsa::tsplot(stats::ts(shesterkin_resid, start = min(shesterkin_reg$data$t), frequency = 1), main = 'Shesterkin: Residuals from TS Regression', xlab = 'Career Game Number (t)', ylab = 'Residuals (Transformed Scale)', col = 'black', lwd = 2)
+  graphics::abline(h = 0, lty = 2, col = 'gray40')
+})
+```
+
+For Blackwood, the residual series is measured on the shifted Box-Cox detrended-response scale and has sample mean `r format_zero(mean(blackwood_resid), 6)`. The plot fluctuates around zero and does not show a sustained linear or nonlinear trend. There is no visible seasonal pattern because the residual spikes do not repeat with a fixed game periodicity. The residual range is `r round(min(blackwood_resid), 4)` to `r round(max(blackwood_resid), 4)` transformed-response units, for a total range of `r round(diff(range(blackwood_resid)), 4)`. The spread looks fairly stable over time, so there is no strong visual evidence of heteroscedasticity. There are isolated positive and negative spikes, but there is no clear volatility clustering. For Shesterkin, the residual series is also measured on the shifted Box-Cox detrended-response scale and has sample mean `r format_zero(mean(shesterkin_resid), 6)`. The plot also fluctuates around zero with no visible deterministic trend. There is no clear seasonal pattern. The residual range is `r round(min(shesterkin_resid), 4)` to `r round(max(shesterkin_resid), 4)` transformed-response units, for a total range of `r round(diff(range(shesterkin_resid)), 4)`. The spread is reasonably stable, and further ACF/PACF and ARMA/ARIMA checks will be useful in determining if this is already white noise.
+
+\newpage
+
+## Problem 2 (b)
+
+\begin{problem}[Problem 2 (b)]
+Plot ACF and PACF of these residuals to discuss the dependence pattern.
+\end{problem}
+
+```{r p2-acf-pacf, fig.width=10, fig.height=7.5, out.width='\\linewidth'}
+with_family({
+  op <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op), add = TRUE)
+  graphics::par(mfrow = c(2, 2), mar = c(4.0, 4.2, 3.0, 1.0), mgp = c(2.2, 0.7, 0), cex.main = 1.0)
+  stats::acf(blackwood_resid, lag.max = 24, main = 'Blackwood Residual ACF', col = 'navy', lwd = 2)
+  stats::pacf(blackwood_resid, lag.max = 24, main = 'Blackwood Residual PACF', col = 'firebrick', lwd = 2)
+  stats::acf(shesterkin_resid, lag.max = 24, main = 'Shesterkin Residual ACF', col = 'navy', lwd = 2)
+  stats::pacf(shesterkin_resid, lag.max = 24, main = 'Shesterkin Residual PACF', col = 'firebrick', lwd = 2)
+})
+```
+
+For white noise, the ACF should have value 1 at lag 0 and should be close to 0 at all nonzero lags, with most sample spikes staying inside the approximate significance bounds. The PACF of white noise should behave similarly: there should be no systematic pattern and no long sequence of important partial autocorrelations. For both Blackwood and Shesterkin, the residual ACF and PACF are fairly close to that white-noise pattern. They do not show a long slow decay, and most nonzero-lag spikes are small. This means a white-noise residual model is plausible, although I still compare low-order ARMA models in part (c). Overall, if we must, this suggests trying low-order ARMA models.
+
+\newpage
+
+## Problem 2 (c)
+
+\begin{problem}[Problem 2 (c)]
+Using steps for ARMA(p,q) fit show the model fit. Justify your choice using ACF and PACF of residuals from TS regression. Report the fitted model, \(\hat{\sigma}^2_W\), number of predictors and AIC for each model.
+\end{problem}
+
+I fit the same set of low-order ARMA models to the Blackwood and Shesterkin regression residuals. Let \(R_t\) denote the residual series from the transformed-detrended-response regression. The ARMA model form is
+\[
+R_t = \phi_1 R_{t-1} + \cdots + \phi_p R_{t-p}
+      + W_t + \theta_1 W_{t-1} + \cdots + \theta_q W_{t-q}.
+\]
+The residuals are already centered near 0 by construction, so the question here is whether any AR or MA lag terms remain useful after fitting the time-series regression. The number of predictors in the table is \(p+q\), the number of AR and MA lag terms.
+
+```{r p2-arma-blackwood-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_arma$table,
+  digits = 4,
+  caption = 'Blackwood ARMA candidate models for TS-regression residuals',
+  size = '\\scriptsize',
+  col_names = c('Model', 'p', 'd', 'q', '\\# Predictors', '$\\hat{\\sigma}_W^2$', 'AIC')
+)
+```
+
+The lowest-AIC Blackwood ARMA candidate is `r blackwood_arma$best_name`, with \(\hat{\sigma}_W^2 = `r round(blackwood_arma$best_fit$sigma2, 4)`\) and AIC \(= `r round(stats::AIC(blackwood_arma$best_fit), 4)`\). Its coefficient table is:
+
+```{r p2-arma-blackwood-coef, echo=FALSE, results='asis'}
+table_latex(
+  arima_coeff_table(blackwood_arma$best_fit),
+  digits = 6,
+  caption = paste0('Blackwood ', blackwood_arma$best_name, ' coefficient estimates'),
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate')
+)
+```
+
+Thus, with \(R_t^{(B)}\) denoting Blackwood's residual series from the transformed-detrended-response regression, the fitted Blackwood ARMA residual model is
+\[
+`r arima_model_equation(blackwood_arma$best_fit, lhs = 'R_t^{(B)}', d = 0)`.
+\]
+
+For Blackwood, the residual plots and ACF/PACF already suggested weak dependence, and I select `r blackwood_arma$best_name` by AIC. Since the selected model has no AR terms and no MA terms, it is a white-noise residual model rather than an additional dependence model. In other words, after accounting for lagged detrended save percentage and lagged detrended team xGF\% in the transformed-detrended-response regression, this ARMA step does not find useful remaining game-to-game dependence in Blackwood's residuals.
+
+```{r p2-arma-shesterkin-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_arma$table,
+  digits = 4,
+  caption = 'Shesterkin ARMA candidate models for TS-regression residuals',
+  size = '\\scriptsize',
+  col_names = c('Model', 'p', 'd', 'q', '\\# Predictors', '$\\hat{\\sigma}_W^2$', 'AIC')
+)
+```
+
+The lowest-AIC Shesterkin ARMA candidate is `r shesterkin_arma$best_name`, with \(\hat{\sigma}_W^2 = `r round(shesterkin_arma$best_fit$sigma2, 4)`\) and AIC \(= `r round(stats::AIC(shesterkin_arma$best_fit), 4)`\). Its coefficient table is:
+
+```{r p2-arma-shesterkin-coef, echo=FALSE, results='asis'}
+table_latex(
+  arima_coeff_table(shesterkin_arma$best_fit),
+  digits = 6,
+  caption = paste0('Shesterkin ', shesterkin_arma$best_name, ' coefficient estimates'),
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate')
+)
+```
+
+Thus, with \(R_t^{(S)}\) denoting Shesterkin's residual series from the transformed-detrended-response regression, the fitted Shesterkin ARMA residual model is
+\[
+`r arima_model_equation(shesterkin_arma$best_fit, lhs = 'R_t^{(S)}', d = 0)`.
+\]
+
+For Shesterkin, I also select `r shesterkin_arma$best_name` by AIC. Since the selected model has no AR terms and no MA terms, it is also a white-noise residual model. This agrees with the part (b) ACF/PACF discussion: Shesterkin's residuals are close enough to white noise that the low-order ARMA candidates do not improve the residual model by AIC. This model is on the shifted Box-Cox detrended-response residual scale.
+
+\newpage
+
+## Problem 2 (d)
+
+\begin{problem}[Problem 2 (d)]
+Repeat the ARMA-model comparison for ARIMA(p,d,q).
+\end{problem}
+
+The residual plots and ADF results from Problem 1 suggest that differencing is not required. However, to answer the ARIMA part directly, I fit first-differenced ARIMA candidates with \(d=1\), using the same \(p,q\) combinations as in the ARMA comparison:
+\[
+\nabla R_t = (1-B)R_t \sim ARMA(p,q).
+\]
+I then compare these first-differenced models to the selected ARMA(0,0) residual model from part (c), because ARMA(0,0) was the best non-differenced residual model for both goalies.
+
+```{r p2-arima-blackwood-table, echo=FALSE, results='asis'}
+table_latex(
+  blackwood_arima$table,
+  digits = 4,
+  caption = 'Blackwood ARIMA candidate models for TS-regression residuals',
+  size = '\\scriptsize',
+  col_names = c('Model', 'p', 'd', 'q', '\\# Predictors', '$\\hat{\\sigma}_W^2$', 'AIC')
+)
+```
+
+For Blackwood, the best first-differenced ARIMA candidate is `r blackwood_arima$best_name`, with \(\hat{\sigma}_W^2 = `r round(blackwood_arima$best_fit$sigma2, 4)`\) and AIC \(= `r round(stats::AIC(blackwood_arima$best_fit), 4)`\). The ARMA(0,0) model from part (c) had \(\hat{\sigma}_W^2 = `r round(blackwood_arma$table$Sigma2[blackwood_arma$table$Model == 'ARIMA(0,0,0)'], 4)`\) and AIC \(= `r round(blackwood_arma$table$AIC[blackwood_arma$table$Model == 'ARIMA(0,0,0)'], 4)`\). Therefore, for Blackwood, the first-differenced ARIMA choice has `r if (stats::AIC(blackwood_arima$best_fit) < blackwood_arma$table$AIC[blackwood_arma$table$Model == 'ARIMA(0,0,0)']) 'a lower' else 'a higher'` AIC than ARMA(0,0), with an AIC difference of `r round(abs(stats::AIC(blackwood_arima$best_fit) - blackwood_arma$table$AIC[blackwood_arma$table$Model == 'ARIMA(0,0,0)']), 4)`. Its coefficient estimates are:
+
+```{r p2-arima-blackwood-coef, echo=FALSE, results='asis'}
+table_latex(
+  arima_coeff_table(blackwood_arima$best_fit),
+  digits = 6,
+  caption = paste0('Blackwood ', blackwood_arima$best_name, ' coefficient estimates'),
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate')
+)
+```
+
+Thus, with \(R_t^{(B)}\) denoting Blackwood's residual series from the transformed-detrended-response regression, the fitted Blackwood ARIMA residual model is
+\[
+`r arima_model_equation(blackwood_arima$best_fit, lhs = 'R_t^{(B)}', d = 1)`.
+\]
+
+```{r p2-arima-shesterkin-table, echo=FALSE, results='asis'}
+table_latex(
+  shesterkin_arima$table,
+  digits = 4,
+  caption = 'Shesterkin ARIMA candidate models for TS-regression residuals',
+  size = '\\scriptsize',
+  col_names = c('Model', 'p', 'd', 'q', '\\# Predictors', '$\\hat{\\sigma}_W^2$', 'AIC')
+)
+```
+
+For Shesterkin, the best first-differenced ARIMA candidate is `r shesterkin_arima$best_name`, with \(\hat{\sigma}_W^2 = `r round(shesterkin_arima$best_fit$sigma2, 4)`\) and AIC \(= `r round(stats::AIC(shesterkin_arima$best_fit), 4)`\). The ARMA(0,0) model from part (c) had \(\hat{\sigma}_W^2 = `r round(shesterkin_arma$table$Sigma2[shesterkin_arma$table$Model == 'ARIMA(0,0,0)'], 4)`\) and AIC \(= `r round(shesterkin_arma$table$AIC[shesterkin_arma$table$Model == 'ARIMA(0,0,0)'], 4)`\). Therefore, for Shesterkin, the first-differenced ARIMA choice has `r if (stats::AIC(shesterkin_arima$best_fit) < shesterkin_arma$table$AIC[shesterkin_arma$table$Model == 'ARIMA(0,0,0)']) 'a lower' else 'a higher'` AIC than ARMA(0,0), with an AIC difference of `r round(abs(stats::AIC(shesterkin_arima$best_fit) - shesterkin_arma$table$AIC[shesterkin_arma$table$Model == 'ARIMA(0,0,0)']), 4)`. Its coefficient estimates are:
+
+```{r p2-arima-shesterkin-coef, echo=FALSE, results='asis'}
+table_latex(
+  arima_coeff_table(shesterkin_arima$best_fit),
+  digits = 6,
+  caption = paste0('Shesterkin ', shesterkin_arima$best_name, ' coefficient estimates'),
+  size = '\\scriptsize',
+  col_names = c('Term', 'Estimate')
+)
+```
+
+Thus, with \(R_t^{(S)}\) denoting Shesterkin's residual series from the transformed-detrended-response regression, the fitted Shesterkin ARIMA residual model is
+\[
+`r arima_model_equation(shesterkin_arima$best_fit, lhs = 'R_t^{(S)}', d = 1)`.
+\]
+
+Overall, the ARIMA step does not change the main modeling conclusion. The regression residuals already look stationary, and the first-differenced ARIMA comparisons do not improve on the ARMA(0,0) residual models by AIC. Therefore, the ARMA(0,0) white-noise residual model remains the preferred residual model for both goalies. Here are the final models that I got:
+
+```{r p2d-original-G-equations, echo=FALSE, results='asis'}
+knitr::asis_output(paste0(
+  'For Blackwood,\n\\[\\begin{aligned}\n',
+  final_G_model_aligned(blackwood_reg$fit, blackwood$means, blackwood_g_lambda, blackwood_g_shift, 4, 8),
+  '\n\\end{aligned}\\]\n\nFor Shesterkin,\n\\[\\begin{aligned}\n',
+  final_G_model_aligned(shesterkin_reg$fit, shesterkin$means, shesterkin_g_lambda, shesterkin_g_shift, 2, 4),
+  '\n\\end{aligned}\\]\n'
+))
+```
+
+\newpage
+
+## Problem 2 (e)
+
+\begin{problem}[Problem 2 (e)]
+Using auto.arima() function in package forecast, report what model R picks as the best model for your original data, using the main response time series and including the predictor series.
+\end{problem}
+
+Finally, I apply `forecast::auto.arima()` to the untransformed detrended response \(\tilde{G}_t\) for each goalie while including the selected lagged detrended predictor series as supplementary regressors through `xreg`. Thus, this part gives one auto-ARIMA-with-regressors model for Blackwood and one for Shesterkin, rather than separate univariate models for \(\tilde{G}_t\), \(\tilde{S}_t\), and \(\tilde{X}_t\). Here "original" means before the Box-Cox response transformation and before residual ARMA modeling; the fitted average levels from part (c) have already been removed for consistency with the rest of the modeling. The time index is still career game number with frequency \(1\).
+
+```{r p2-auto-table, echo=FALSE, results='asis'}
+table_latex(
+  auto_response_xreg_table[, c('Goalie', 'Model', 'Sigma2', 'AIC', 'BIC')],
+  digits = 4,
+  caption = 'auto.arima results for untransformed detrended GSAx with lagged detrended predictors',
+  size = '\\small',
+  col_names = c('Goalie', 'ARIMA Order', '$\\hat{\\sigma}^2$', 'AIC', 'BIC')
+)
+```
+
+For Blackwood, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Blackwood']` for untransformed \(\tilde{G}_t\) using \(\tilde{S}_{t-4}\) and \(\tilde{X}_{t-8}\) as regressors. The estimated innovation variance is `r round(auto_response_xreg_table$Sigma2[auto_response_xreg_table$Goalie == 'Blackwood'], 4)`, with AIC `r round(auto_response_xreg_table$AIC[auto_response_xreg_table$Goalie == 'Blackwood'], 4)`. For Shesterkin, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Shesterkin']` for untransformed \(\tilde{G}_t\) using \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) as regressors. The estimated innovation variance is `r round(auto_response_xreg_table$Sigma2[auto_response_xreg_table$Goalie == 'Shesterkin'], 4)`, with AIC `r round(auto_response_xreg_table$AIC[auto_response_xreg_table$Goalie == 'Shesterkin'], 4)`. These two models are useful as an automated comparison to the manually built regression-plus-residual models above. The manual analysis remains easier to interpret because it shows the time plots, stationarity checks, CCF lead selection, transformation decision, regression fit, and residual ARMA/ARIMA checks separately, as we discussed in class.
