@@ -687,18 +687,18 @@ shesterkin_arima <- arima_candidate_table(shesterkin_resid, arima_orders)
 
 auto_response_xreg_table <- rbind(
   auto_xreg_row(
-    blackwood_raw_reg$data$g,
-    blackwood_raw_reg$data[, c('sv', 'xgf')],
+    blackwood_gbgs$gsax_ev,
+    blackwood_gbgs[, c('sv_pct_ev', 'team_xg_pct_ev')],
     'Blackwood',
-    '$\\tilde{G}_t$',
-    '$\\tilde{S}_{t-4}, \\tilde{X}_{t-8}$'
+    '$G_t$',
+    '$S_t, X_t$'
   ),
   auto_xreg_row(
-    shesterkin_raw_reg$data$g,
-    shesterkin_raw_reg$data[, c('sv', 'xgf')],
+    shesterkin_gbgs$gsax_ev,
+    shesterkin_gbgs[, c('sv_pct_ev', 'team_xg_pct_ev')],
     'Shesterkin',
-    '$\\tilde{G}_t$',
-    '$\\tilde{S}_{t-2}, \\tilde{X}_{t-4}$'
+    '$G_t$',
+    '$S_t, X_t$'
   )
 )
 ```
@@ -1373,16 +1373,24 @@ knitr::asis_output(paste0(
 Using auto.arima() function in package forecast, report what model R picks as the best model for your original data, using the main response time series and including the predictor series.
 \end{problem}
 
-Finally, I apply `forecast::auto.arima()` to the untransformed detrended response \(\tilde{G}_t\) for each goalie while including the selected lagged detrended predictor series as supplementary regressors through `xreg`. Thus, this part gives one auto-ARIMA-with-regressors model for Blackwood and one for Shesterkin, rather than separate univariate models for \(\tilde{G}_t\), \(\tilde{S}_t\), and \(\tilde{X}_t\). Here "original" means before the Box-Cox response transformation and before residual ARMA modeling; the fitted average levels from part (c) have already been removed for consistency with the rest of the modeling. The time index is still career game number with frequency \(1\).
+Finally, I apply `forecast::auto.arima()` to the raw response \(G_t\) for each goalie while including the raw predictor series \(S_t\) and \(X_t\) as supplementary regressors through `xreg`. The time index is still career game number with frequency \(1\).
 
 ```{r p2-auto-table, echo=FALSE, results='asis'}
 table_latex(
   auto_response_xreg_table[, c('Goalie', 'Model', 'Sigma2', 'AIC', 'BIC')],
   digits = 4,
-  caption = 'auto.arima results for untransformed detrended GSAx with lagged detrended predictors',
+  caption = 'auto.arima results for raw GSAx with raw save percentage and team xGF\\% predictors',
   size = '\\small',
   col_names = c('Goalie', 'ARIMA Order', '$\\hat{\\sigma}^2$', 'AIC', 'BIC')
 )
 ```
 
-For Blackwood, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Blackwood']` for untransformed \(\tilde{G}_t\) using \(\tilde{S}_{t-4}\) and \(\tilde{X}_{t-8}\) as regressors. The estimated innovation variance is `r round(auto_response_xreg_table$Sigma2[auto_response_xreg_table$Goalie == 'Blackwood'], 4)`, with AIC `r round(auto_response_xreg_table$AIC[auto_response_xreg_table$Goalie == 'Blackwood'], 4)`. For Shesterkin, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Shesterkin']` for untransformed \(\tilde{G}_t\) using \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) as regressors. The estimated innovation variance is `r round(auto_response_xreg_table$Sigma2[auto_response_xreg_table$Goalie == 'Shesterkin'], 4)`, with AIC `r round(auto_response_xreg_table$AIC[auto_response_xreg_table$Goalie == 'Shesterkin'], 4)`. These two models are useful as an automated comparison to the manually built regression-plus-residual models above. The manual analysis remains easier to interpret because it shows the time plots, stationarity checks, CCF lead selection, transformation decision, regression fit, and residual ARMA/ARIMA checks separately, as we discussed in class.
+For Blackwood, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Blackwood']` for raw \(G_t\) using raw \(S_t\) and \(X_t\) as regressors. The fitted equation is
+\[
+G_t=G_{t-1}+14.3200(S_t-S_{t-1})-0.0040(X_t-X_{t-1})+W_t-0.9700W_{t-1}.
+\]
+For Shesterkin, `auto.arima()` selects `r auto_response_xreg_table$Model[auto_response_xreg_table$Goalie == 'Shesterkin']` for raw \(G_t\) using raw \(S_t\) and \(X_t\) as regressors. The fitted equation is
+\[
+G_t=G_{t-1}+16.0185(S_t-S_{t-1})-0.0128(X_t-X_{t-1})+W_t-0.9861W_{t-1}.
+\]
+The innovation variances, AIC values, and BIC values are reported in the table above. These two models are useful as an automated raw-data comparison to the manually built regression-plus-residual models above because they show that R finds a short-memory ARIMA(0,1,1) error structure when it is allowed to choose mechanically. The manual analysis remains easier to interpret because it shows the time plots, stationarity checks, CCF lead selection, transformation decision, regression fit, and residual ARMA/ARIMA checks separately, as we discussed in class.

@@ -661,19 +661,19 @@ shesterkin_arma   <- arima_candidate_table(shesterkin_resid, arma_orders)
 blackwood_arima   <- arima_candidate_table(blackwood_resid, arima_orders)
 shesterkin_arima  <- arima_candidate_table(shesterkin_resid, arima_orders)
 
-# Compare against auto.arima with lagged predictors.
+# Compare against auto.arima with raw predictors.
 auto_response_xreg_tbl <- rbind(
   auto_xreg_row(
-    blackwood_raw_reg$data$g,
-    blackwood_raw_reg$data[, c('sv', 'xgf')],
+    blackwood_gbgs$gsax_ev,
+    blackwood_gbgs[, c('sv_pct_ev', 'team_xg_pct_ev')],
     'Blackwood',
-    '$\\tilde{S}_{t-4},\\tilde{X}_{t-8}$'
+    '$S_t,X_t$'
   ),
   auto_xreg_row(
-    shesterkin_raw_reg$data$g,
-    shesterkin_raw_reg$data[, c('sv', 'xgf')],
+    shesterkin_gbgs$gsax_ev,
+    shesterkin_gbgs[, c('sv_pct_ev', 'team_xg_pct_ev')],
     'Shesterkin',
-    '$\\tilde{S}_{t-2},\\tilde{X}_{t-4}$'
+    '$S_t,X_t$'
   )
 )
 
@@ -1046,7 +1046,7 @@ The research question is whether lagged goalie performance and lagged team shot-
 
 The unit of observation is one completed regular-season game at even strength. Let \(G_t\) be game-by-game even-strength GSAx in goals, \(S_t\) be even-strength save percentage as a proportion, and \(X_t\) be team even-strength xGF% in percentage points. I first plot all series and use the Augmented Dickey-Fuller test, whose null hypothesis is non-stationarity. Since the game index is not a calendar month or quarter, I use periodograms only to check whether the response or predictors contain a credible repeating game-cycle frequency. The periodograms did not show stable, interpretable seasonality, so the trend model is the constant mean model \(Y_t=\mu_Y+W_t\), and detrending means subtracting the fitted average level.
 
-The time-series regression uses only lagged predictors, because same-game or future predictor information would not be available for forecasting. Cross-correlation functions suggested \(\tilde{S}_{t-4}\) and \(\tilde{X}_{t-8}\) for Blackwood and \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) for Shesterkin, where tildes mean deviations from each goalie’s fitted average; the supporting CCF evidence is shown in Figure \@ref(fig:ccf-plot) and Table \@ref(tab:ccf-table) from Appendix A, with the corresponding lagged scatterplots in Figures \@ref(fig:scatter-blackwood-sv)-\@ref(fig:scatter-shesterkin-xgf) from Appendix A. The response needed a shifted Box-Cox transformation to reduce variance imbalance, summarized in Table \@ref(tab:transform-table) from Appendix A, so the fitted regression is \(Y_t=\beta_0+\beta_1\tilde{S}_{t-a}+\beta_2\tilde{X}_{t-b}+W_t\) on the transformed detrended-GSAx scale. Finally, I inspect the residual plots, ACF, and PACF and compare low-order ARMA and first-differenced ARIMA candidates by AIC. The manual final model is also compared with `forecast::auto.arima()` using the untransformed detrended response and the selected lagged predictors as `xreg`.
+The time-series regression uses only lagged predictors, because same-game or future predictor information would not be available for forecasting. Cross-correlation functions suggested \(\tilde{S}_{t-4}\) and \(\tilde{X}_{t-8}\) for Blackwood and \(\tilde{S}_{t-2}\) and \(\tilde{X}_{t-4}\) for Shesterkin, where tildes mean deviations from each goalie’s fitted average; the supporting CCF evidence is shown in Figure \@ref(fig:ccf-plot) and Table \@ref(tab:ccf-table) from Appendix A, with the corresponding lagged scatterplots in Figures \@ref(fig:scatter-blackwood-sv)-\@ref(fig:scatter-shesterkin-xgf) from Appendix A. The response needed a shifted Box-Cox transformation to reduce variance imbalance, summarized in Table \@ref(tab:transform-table) from Appendix A, so the fitted regression is \(Y_t=\beta_0+\beta_1\tilde{S}_{t-a}+\beta_2\tilde{X}_{t-b}+W_t\) on the transformed detrended-GSAx scale. Finally, I inspect the residual plots, ACF, and PACF and compare low-order ARMA and first-differenced ARIMA candidates by AIC. As a benchmark, I also let `forecast::auto.arima()` choose an ARIMA error structure with \(S_t\) and \(X_t\) included as external regressors.
 
 # Results and Conclusion
 
@@ -1078,7 +1078,7 @@ plot_main_series(base_family = base_family)
 model_comparison_tbl |>
   table_latex(
     col_names = c('Goalie', 'TS Regression', 'Manual Residual Model', 'Best Differenced Candidate', 'auto.arima + xreg'),
-    caption = 'Final model comparison. Manual residual AIC is on the transformed residual scale; auto.arima uses untransformed detrended GSAx with the same lagged predictors.',
+    caption = 'Final model comparison. Manual residual AIC is on the transformed residual scale; auto.arima uses raw GSAx with raw save percentage and team xGF\\% as xreg.',
     align = c('l', 'l', 'l', 'l', 'l'),
     wrap_col = 2,
     wrap_width = '1.25in',
@@ -1110,38 +1110,50 @@ G_t = 0.2329
 \]
 These equations show the model sequence directly: subtract the fitted average levels, transform the detrended response, fit the lagged regression, and then reverse the response transformation so fitted values are again measured in goals.
 
-```{r residual-diagnostics, fig.width = 6.35, fig.height = 2.55, fig.cap = 'Residual index plots, residual ACF, and residual PACF after the transformed lagged regressions.'}
+```{r residual-diagnostics, fig.width = 6.35, fig.height = 2.35, fig.cap = 'Residual index plots, residual ACF, and residual PACF after the transformed lagged regressions.'}
 # Plot regression residuals, residual ACF, and residual PACF.
 plot_residual_diagnostics(base_family = base_family)
 ```
 
 Figure \@ref(fig:residual-diagnostics) shows why the residual model remains simple. The residuals fluctuate around zero without a sustained trend or visible seasonal cycle, and the ACF and PACF spikes do not form a slow-decaying dependence pattern. The broader original-transformed-residual comparison in Figure \@ref(fig:acf-pacf-comparison) from Appendix C tells the same story: any small serial structure before modeling is not strong enough to survive as useful residual dependence. The low-order ARMA comparison selects ARMA(0,0), written here as ARIMA(0,0,0), for both goalies (Tables \@ref(tab:arma-candidates-blackwood) and \@ref(tab:arma-candidates-shesterkin) from Appendix C). First-differenced ARIMA candidates do not improve AIC (Table \@ref(tab:arima-candidate-table) from Appendix C), and I do not fit ARCH/GARCH models because the residual plots do not show clear volatility clustering or changing conditional variance. Therefore, the final fitted model is a transformed lagged regression plus white-noise residuals. With future lagged predictors set to each goalie’s fitted average levels, the ten-game GSAx forecasts are essentially flat, with wide bands that reflect how noisy single-game goaltending outcomes are.
 
-```{r forecast-plot, fig.width = 6.35, fig.height = 1.85, fig.cap = 'Ten-game response forecasts from the final manual model under average future predictor conditions. The dotted line marks the last observed matched game.'}
+```{r forecast-plot, fig.width = 6.35, fig.height = 1.55, fig.cap = 'Ten-game response forecasts from the final manual model under average future predictor conditions. The dotted line marks the last observed matched game.'}
 # Plot neutral ten-game forecasts.
 plot_forecast_series(base_family = base_family)
 ```
 
-The conclusion is not that team context never matters to goalie evaluation. Rather, in these matched game-by-game even-strength series, lagged team xGF% and lagged save percentage explain little current GSAx variation, and after the final regression there is little remaining autocorrelation to model. GSAx remains valuable because it adjusts for chance quality, but single-game GSAx is still very noisy. Blackwood shows no strong regression evidence that recent team environment predicts current GSAx; Shesterkin’s lagged relationship is statistically detectable but practically small.
+The automated benchmark in Table \@ref(tab:model-comparison), with innovation variance and information criteria in Table \@ref(tab:auto-table) from Appendix C, selects ARIMA(0,1,1) errors for both goalies. Written as one regression-with-ARIMA-errors equation for each goalie, the fitted benchmarks are
+\[
+\begin{aligned}
+\text{Blackwood:}\quad G_t &= G_{t-1}+14.3200(S_t-S_{t-1})-0.0040(X_t-X_{t-1})+W_t-0.9700W_{t-1},\\
+\text{Shesterkin:}\quad G_t &= G_{t-1}+16.0185(S_t-S_{t-1})-0.0128(X_t-X_{t-1})+W_t-0.9861W_{t-1}.
+\end{aligned}
+\]
+The automated model has lower raw-scale AIC than a no-error benchmark would have, and the MA coefficient near \(-1\) says the fitted series mainly adjusts through one-game changes rather than persistent autoregression. Still, it is more mechanical than the final model because it uses current changes in \(S_t\) and \(X_t\), while the manual model follows the lagged evidence available before the game and then checks whether the remaining residuals need ARMA/ARIMA structure. Therefore, `auto.arima()` is useful as a benchmark, but the final transformed lagged-regression model is the better answer to the research question because it is built around interpretable pre-game predictors and leaves residuals that look close to white noise.
+
+In conclusion, in these matched game-by-game even-strength series, lagged team xGF% and lagged save percentage explain little current GSAx variation, and after the final regression there is little remaining autocorrelation to model. GSAx remains valuable because it adjusts for chance quality, but single-game GSAx is still very noisy. Blackwood shows no strong regression evidence that recent team environment predicts current GSAx; Shesterkin’s lagged relationship is statistically detectable but practically small.
 
 # Discussion
 
-If I continued this research, I would expand beyond two goalies and add destination-specific team features rather than relying only on lagged team xGF%. A larger hierarchical model could separate player ability, team environment, opponent strength, schedule density, and era. I would also test rolling-window features, rest days, back-to-back games, score state, and opponent shot quality by game situation. Finally, I would move from neutral predictor forecasts to scenario forecasts. The current paper is strongest as a two-goalie time-series case study: the obvious lagged predictors leave most game-level GSAx variation unexplained, which is an important caution when interpreting single-game goalie metrics.
+If I continued this research, I would expand beyond two goalies and add destination-specific team features rather than relying only on lagged team xGF%. A larger hierarchical model could separate player ability, team environment, opponent strength, schedule density, and era. I would also test rolling-window features, rest days, back-to-back games, score state, and opponent shot quality by game situation. Finally, I would move from neutral predictor forecasts to scenario forecasts.
 
 # References
 
-\footnotesize
+\small
 \singlespacing
 
 ::: {#refs}
 :::
 
-\normalsize
-\doublespacing
-
 # Data Resources
 
-The final analysis files are `data/blackwood_gbgs.csv` and `data/shesterkin_gbgs.csv` in this STA 209 repository [@sta209data], built from the `rentosrink` game-by-game pipeline and expected-goals model [@rentosrink]. The main columns are game identifiers, team labels, `sv_pct_ev`, `gsax_ev`, `xga_ev`, `xgf_ev`, and `team_xg_pct_ev`. I kept regular-season even-strength games and matched both goalies to the first `r matched_n` career games in the available files.
+\small
+\singlespacing
+
+The final analysis files are `data/blackwood_gbgs.csv` and `data/shesterkin_gbgs.csv` in this STA 209 repository [@sta209data], built from the `rentosrink` game-by-game pipeline and expected-goals model [@rentosrink]. I used the even-strength columns named above and matched both goalies to `r matched_n` regular-season games.
+
+\normalsize
+\doublespacing
 
 \newpage
 \singlespacing
@@ -1426,11 +1438,11 @@ auto_response_xreg_tbl |>
   transform(Sigma2 = round(Sigma2, 4), AIC = round(AIC, 2), BIC = round(BIC, 2)) |>
   table_latex(
     col_names = c('Goalie', 'Xreg', 'Model', '$\\hat{\\sigma}^2$', 'AIC', 'BIC'),
-    caption = 'auto.arima comparison on untransformed detrended GSAx with selected lagged predictors.',
+    caption = 'auto.arima comparison on raw GSAx with raw save percentage and team xGF\\% as xreg.',
     align = c('l', 'c', 'c', 'r', 'r', 'r'),
     font_size = 6.8,
     escape = FALSE
   )
 ```
 
-Table \@ref(tab:auto-table) gives the automated comparison requested in the assignment. `auto.arima()` also selects ARIMA(0,0,0) with the lagged predictors included as `xreg`, which supports the manual conclusion that the residual dependence structure is already mostly explained by the regression-and-white-noise model.
+Table \@ref(tab:auto-table) gives the automated comparison requested in the assignment. The selected model is ARIMA(0,1,1) for both goalies, which is more complex than the final manual residual model but still short-memory: after one difference, the remaining dependence is captured by one moving-average term. This supports the main paper's comparison because the automated route finds some local dependence, while the final lagged-regression route shows that the dependence does not translate into strong explanatory power for game-level GSAx.
