@@ -4,7 +4,6 @@
 .Ruserdata
 .DS_Store
 **/.DS_Store
-.gitignore
 STA209.Rproj
 Study1.R
 /figure
