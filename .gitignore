@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+**/.DS_Store
+.gitignore
+STA209.Rproj
+Study1.R
+/figure
+Lecture*.R
+Classwork.docx
+data/
+Presentation2_raw.pptx
